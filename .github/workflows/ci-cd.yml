@@ -1,0 +1,56 @@
+# name: CI/CD Pipeline
+
+# on:
+#   push:
+#     branches:
+#       - main    # Ou master, ou la branche que vous voulez suivre
+#   pull_request:
+#     branches:
+#       - main
+
+# jobs:
+#   build-test:
+#     runs-on: ubuntu-latest
+
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v3
+
+#       - name: Set up JDK 17
+#         uses: actions/setup-java@v3
+#         with:
+#           java-version: '17'
+
+#       - name: Build with Maven
+#         run: mvn clean install -DskipTests=false
+
+#       - name: Run tests
+#         run: mvn test
+
+#   deploy:
+#     needs: build-test
+#     runs-on: ubuntu-latest
+#     if: github.ref == 'refs/heads/main'
+
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v3
+
+#       - name: Set up JDK 17
+#         uses: actions/setup-java@v3
+#         with:
+#           java-version: '17'
+
+#       - name: Build package
+#         run: mvn clean package -DskipTests
+
+#       - name: Deploy to server via SSH
+#         uses: appleboy/ssh-action@v0.1.7
+#         with:
+#           host: ${{ secrets.SERVER_HOST }}
+#           username: ${{ secrets.SERVER_USER }}
+#           key: ${{ secrets.SERVER_SSH_KEY }}
+#           script: |
+#             # Commandes pour déployer votre JAR (adapter selon serveur)
+#             pkill -f 'java -jar' || true
+#             nohup java -jar /path/to/app.jar > /dev/null 2>&1 &
