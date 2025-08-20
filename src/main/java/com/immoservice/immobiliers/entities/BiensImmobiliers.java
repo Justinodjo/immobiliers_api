@@ -1,5 +1,6 @@
 package com.immoservice.immobiliers.entities;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -8,16 +9,22 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.annotation.LastModifiedDate;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.immoservice.immobiliers.config.AuditLogListener;
-
+import com.immoservice.immobiliers.enums.TypeUnite;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
@@ -40,32 +47,52 @@ public class BiensImmobiliers extends BaseEntity {
     private Double latitude;
     private Double longitude;
     private Boolean status; // actif, inactif
+    @Column(name = "nombre_vues")
+    private Integer nombreVues = 0;
+    private Integer nombreJaime = 0;
+    private Boolean aVendre;
+    @Column(nullable = true)
     private Double note;
     private Double superficie;
-    private int prix;
+    private Double prix;
+    @Enumerated(EnumType.STRING)
+    private TypeUnite typeUnite;
     @Column(columnDefinition = "TEXT")
     private String description;
     @ManyToOne
     @JoinColumn(name = "typeBiens_id")
     private TypeBiensImmobiliere typeBiensImmobiliere;
-    @ManyToOne
-    @JoinColumn(name = "details_biens_immobiliers")
-    private DetailsBiensImmobiliers detailsBiensImmobiliers;
 
     @ManyToOne
+    @JoinColumn(name = "details_biens_immobiliers")
+    @JsonManagedReference("biensImmobiliers-detailsBiensImmobiliers")
+    private DetailsBiensImmobiliers detailsBiensImmobiliers;
+
+    @ManyToOne(cascade = { CascadeType.MERGE, CascadeType.REFRESH })
     @JoinColumn(name = "user_info_id") // Clé étrangère pour lier UserInfo à Reservation
     private UserInfo userInfo;
 
-    @ManyToOne
+    @ManyToOne(cascade = { CascadeType.MERGE, CascadeType.REFRESH })
     private Fichier fichier;
-    @OneToMany(cascade = CascadeType.ALL)
+    @OneToMany(cascade = { CascadeType.MERGE, CascadeType.REFRESH })
     @JoinColumn(name = "biens_immobiliers_id")
     private List<Fichier> fichiers;
+
     @CreatedBy
     @ManyToOne(cascade = { CascadeType.PERSIST, CascadeType.MERGE })
     @JoinColumn(name = "created_by_id") // Clé étrangère dans la table produits
+    @JsonIgnore
     private UserInfo createdBy;
 
+    @ManyToOne(cascade = { CascadeType.PERSIST, CascadeType.MERGE })
+    @JoinColumn(name = "equipements_id")
+    private Equipements equipements;
+
+    // 🔹 Relation inverse pour éviter boucle JSON
+    @ManyToMany(mappedBy = "biensImmobiliers")
+    @JsonBackReference
+    @JsonIgnore
+    private List<Contrats> contrats = new ArrayList<>();
     @CreatedDate
     @Column(updatable = false)
     private Date createdAt;
@@ -73,6 +100,7 @@ public class BiensImmobiliers extends BaseEntity {
     @LastModifiedBy
     @ManyToOne(cascade = { CascadeType.PERSIST, CascadeType.MERGE })
     @JoinColumn(name = "updated_by_id") // Clé étrangère dans la table produits
+    @JsonIgnore
     private UserInfo updatedBy;
 
     @LastModifiedDate
@@ -83,12 +111,16 @@ public class BiensImmobiliers extends BaseEntity {
     }
 
     // ✅ (facultatif) Votre constructeur personnalisé
-    public BiensImmobiliers(String nom, Long id, String adresse, int prix, UserInfo userInfo) {
+    public BiensImmobiliers(String nom, Long id, String adresse, Double prix, UserInfo userInfo) {
         this.nom = nom;
         this.id = id;
         this.adresse = adresse;
         this.prix = prix;
         this.userInfo = userInfo;
+    }
+
+    public void incrementerVue() {
+        this.nombreVues += 1;
     }
 
     @PrePersist
@@ -167,12 +199,20 @@ public class BiensImmobiliers extends BaseEntity {
         this.userInfo = userInfo;
     }
 
-    public int getPrix() {
+    public Double getPrix() {
         return prix;
     }
 
-    public void setPrix(int prix) {
+    public void setPrix(Double prix) {
         this.prix = prix;
+    }
+
+    public TypeUnite getTypeUnite() {
+        return typeUnite;
+    }
+
+    public void setTypeUnite(TypeUnite typeUnite) {
+        this.typeUnite = typeUnite;
     }
 
     public Fichier getFichier() {
@@ -281,5 +321,45 @@ public class BiensImmobiliers extends BaseEntity {
 
     public void setNote(Double note) {
         this.note = note;
+    }
+
+    public Integer getNombreVues() {
+        return nombreVues;
+    }
+
+    public void setNombreVues(Integer nombreVues) {
+        this.nombreVues = nombreVues;
+    }
+
+    public Equipements getEquipements() {
+        return equipements;
+    }
+
+    public void setEquipements(Equipements equipements) {
+        this.equipements = equipements;
+    }
+
+    public Integer getNombreJaime() {
+        return nombreJaime;
+    }
+
+    public void setNombreJaime(Integer nombreJaime) {
+        this.nombreJaime = nombreJaime;
+    }
+
+    public Boolean getaVendre() {
+        return aVendre;
+    }
+
+    public void setaVendre(Boolean aVendre) {
+        this.aVendre = aVendre;
+    }
+
+    public List<Contrats> getContrats() {
+        return contrats;
+    }
+
+    public void setContrats(List<Contrats> contrats) {
+        this.contrats = contrats;
     }
 }

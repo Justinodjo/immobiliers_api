@@ -2,6 +2,7 @@ package com.immoservice.immobiliers.response;
 
 import java.util.Collection;
 import java.util.List;
+
 import org.springframework.security.core.GrantedAuthority;
 
 public class AuthResponse {
@@ -9,16 +10,17 @@ public class AuthResponse {
     private String token;
     private String userName;
     private String secondName;
-    private Integer numero;
+    private String numero;
     private String email;
     private String fichier;
     private List<String> fichiers;
     private Collection<? extends GrantedAuthority> roles;
+    private List<String> permissions;
 
     // Constructeurs, getters et setters
-    public AuthResponse(Integer id, String token, String userName, String secondName, Integer numero, String email,
+    public AuthResponse(Integer id, String token, String userName, String secondName, String numero, String email,
             String fichier,
-            List<String> fichiers, Collection<? extends GrantedAuthority> roles) {
+            List<String> fichiers, Collection<? extends GrantedAuthority> roles, List<String> permissions) {
         this.id = id;
         this.token = token;
         this.userName = userName;
@@ -28,6 +30,7 @@ public class AuthResponse {
         this.roles = roles;
         this.fichier = fichier;
         this.fichiers = fichiers;
+        this.permissions = permissions;
     }
 
     public String getToken() {
@@ -58,11 +61,11 @@ public class AuthResponse {
         return secondName;
     }
 
-    public Integer getNumero() {
+    public String getNumero() {
         return numero;
     }
 
-    public void setNumero(Integer numero) {
+    public void setNumero(String numero) {
         this.numero = numero;
     }
 
@@ -100,5 +103,13 @@ public class AuthResponse {
 
     public void setFichiers(List<String> fichiers) {
         this.fichiers = fichiers;
+    }
+
+    public List<String> getPermissions() {
+        return permissions;
+    }
+
+    public void setPermissions(List<String> permissions) {
+        this.permissions = permissions;
     }
 }

@@ -1,41 +1,7 @@
--- phpMyAdmin SQL Dump
--- version 5.2.0
--- https://www.phpmyadmin.net/
---
--- Hôte : 127.0.0.1
--- Généré le : lun. 26 août 2024 à 22:08
--- Version du serveur : 10.4.25-MariaDB
--- Version de PHP : 7.4.30
-SET
-  SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
-
-START TRANSACTION;
-
-SET
-  time_zone = "+00:00";
-
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-
-/*!40101 SET NAMES utf8mb4 */;
-
---
--- Base de données : `sisanapi_db`
---
---
--- Structure de la table `departement`
---
-CREATE TABLE
-  `departement` (
-    `id_departement` bigint (20) NOT NULL,
-    `datecreation` datetime (6) DEFAULT NULL,
-    `libelle` varchar(255) DEFAULT NULL,
-    `pays_id` bigint (20) DEFAULT NULL,
-    `version` datetime (6) DEFAULT NULL
-  ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
+INSERT INTO
+  pays (id, version, libelle, date_creation)
+VALUES
+  (1, '2018-03-20', 'Bénin', '2018-03-20');
 
 INSERT INTO
   departement (
@@ -58,19 +24,6 @@ VALUES
   (10, '2018-03-20', 'ATLANTIQUE', '2018-03-20', 1),
   (11, '2018-03-20', 'OUEME', '2018-03-20', 1),
   (12, '2018-03-20', 'LITTORAL', '2018-03-20', 1);
-
--- --------------------------------------------------------
---
--- Structure de la table `commune`
---
-CREATE TABLE
-  `commune` (
-    `id_commune` bigint (20) NOT NULL,
-    `datecreation` datetime (6) DEFAULT NULL,
-    `libelle` varchar(255) DEFAULT NULL,
-    `version` datetime (6) DEFAULT NULL,
-    `id_departement` bigint (20) DEFAULT NULL
-  ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
 INSERT INTO
   commune (
@@ -182,20 +135,6 @@ VALUES
   (75, '2018-03-20', 'Dangbo', '2018-03-20', 11),
   (76, '2018-03-20', 'Porto-Novo', '2018-03-20', 11),
   (77, '2018-03-20', 'Sèmè-Podji', '2018-03-20', 11);
-
--- --------------------------------------------------------
--- --------------------------------------------------------
---
--- Structure de la table `arrondissement`
---
-CREATE TABLE
-  `arrondissement` (
-    `id_arrondissement` bigint (20) NOT NULL,
-    `datecreation` datetime (6) DEFAULT NULL,
-    `libelle` varchar(255) DEFAULT NULL,
-    `version` datetime (6) DEFAULT NULL,
-    `id_commune` bigint (20) DEFAULT NULL
-  ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
 
 INSERT INTO
   arrondissement (
@@ -1263,20 +1202,6 @@ VALUES
   (545, '2018-03-20', 'ZOGBODOMEY', '2018-03-20', 42),
   (546, '2018-03-20', 'ZOUKOU', '2018-03-20', 42);
 
--- --------------------------------------------------------
---
--- Structure de la table `quartier`
---
-CREATE TABLE
-  `quartier` (
-    `id_quartier` bigint (20) NOT NULL,
-    `datecreation` datetime (6) DEFAULT NULL,
-    `libelle` varchar(255) DEFAULT NULL,
-    `version` datetime (6) DEFAULT NULL,
-    `id_arrondissement` bigint (20) DEFAULT NULL
-  ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
-
--- --------------------------------------------------------
 INSERT INTO
   quartier (
     id_quartier,
@@ -8487,22 +8412,3 @@ VALUES
     '2018-03-20',
     201
   );
-
--- --------------------------------------------------------
---
--- Structure de la table `role`
---
-CREATE TABLE
-  `role` (
-    `id_role` bigint (20) NOT NULL,
-    `nom_role` varchar(255) DEFAULT NULL
-  ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
-
-INSERT INTO
-  `role` (`id_role`, `nom_role`)
-VALUES
-  (1, 'USER_ROLES'),
-  (2, 'ADMIN_ROLES'),
-  (3, 'MANAGER_ROLES');
-
--- --------------------------------------------------------

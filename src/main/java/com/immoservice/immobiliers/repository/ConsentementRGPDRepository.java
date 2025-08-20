@@ -9,5 +9,7 @@ import com.immoservice.immobiliers.entities.UserInfo;
 
 @Repository
 public interface ConsentementRGPDRepository extends JpaRepository<ConsentementRGPD, Long> {
-    List<ConsentementRGPD> findByUser(UserInfo user);
+    List<ConsentementRGPD> findByUserInfo(UserInfo userInfo);
+
+    List<ConsentementRGPD> findByUserInfoId(Long userInfoId);
 }

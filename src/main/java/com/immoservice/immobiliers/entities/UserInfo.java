@@ -3,20 +3,27 @@ package com.immoservice.immobiliers.entities;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.Transient;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -31,27 +38,51 @@ public class UserInfo {
     private Integer id;
     private String name;
     private String secondName;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private Date dateNaissance;
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private String password;
     private String adresse;
     private String email;
-    private Integer numero;
+    @Column(name = "numero", length = 20)
+    private String numero;
     @ManyToOne(cascade = { CascadeType.PERSIST, CascadeType.MERGE })
     @JoinColumn(name = "fichier_id") // Clé étrangère dans la table produits
     private Fichier fichier;
-
+    @Transient
+    private String passwordConfirm;
     @JsonManagedReference
     @OneToMany(mappedBy = "userInfo", cascade = { CascadeType.PERSIST,
             CascadeType.MERGE,
-            CascadeType.REMOVE }, orphanRemoval = true, fetch = FetchType.EAGER)
+            CascadeType.REMOVE }, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Fichier> fichiers = new ArrayList<>();
-    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
-    private String password;
+
     @ManyToMany(fetch = FetchType.EAGER)
     private Collection<Role> roles = new ArrayList<>();
 
-    public UserInfo(String name, String email) {
-        this.name = name;
-        this.email = email;
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(name = "user_permission", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "permission_id"))
+    private Set<Permission> permissions = new HashSet<>();
+
+    // ✅ MÉTHODE UTILITAIRE : Récupérer le fichier principal
+    public Fichier getFichierPrincipal() {
+        return fichiers.stream()
+                .filter(Fichier::isPrincipal) // Assumant qu'il y a un attribut 'principal' dans Fichier
+                .findFirst()
+                .orElse(null);
+    }
+
+    // ✅ MÉTHODE UTILITAIRE : Définir un fichier comme principal
+    public void setFichierPrincipal(Fichier fichier) {
+        // Retirer le statut principal des autres fichiers
+        fichiers.forEach(f -> f.setPrincipal(false));
+        // Définir le nouveau fichier comme principal
+        if (fichier != null) {
+            fichier.setPrincipal(true);
+            if (!fichiers.contains(fichier)) {
+                fichiers.add(fichier);
+            }
+        }
     }
 
     public Integer getId() {
@@ -78,6 +109,14 @@ public class UserInfo {
         this.secondName = secondName;
     }
 
+    public String getPasswordConfirm() {
+        return passwordConfirm;
+    }
+
+    public void setPasswordConfirm(String passwordConfirm) {
+        this.passwordConfirm = passwordConfirm;
+    }
+
     public Date getDateNaissance() {
         return dateNaissance;
     }
@@ -102,11 +141,11 @@ public class UserInfo {
         this.email = email;
     }
 
-    public Integer getNumero() {
+    public String getNumero() {
         return numero;
     }
 
-    public void setNumero(Integer numero) {
+    public void setNumero(String numero) {
         this.numero = numero;
     }
 
@@ -140,6 +179,31 @@ public class UserInfo {
 
     public void setRoles(Collection<Role> roles) {
         this.roles = roles;
+    }
+
+    public Set<Permission> getPermissions() {
+        return permissions;
+    }
+
+    public void setPermissions(Set<Permission> permissions) {
+        this.permissions = permissions;
+    }
+
+    @Override
+    public String toString() {
+        return "UserInfo{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", secondName='" + secondName + '\'' +
+                ", dateNaissance=" + dateNaissance +
+                ", password='" + password + '\'' +
+                ", adresse='" + adresse + '\'' +
+                ", email='" + email + '\'' +
+                ", numero=" + numero +
+                ", fichier=" + fichier +
+                ", roles=" + roles +
+                ", permissions=" + permissions +
+                '}';
     }
 
 }

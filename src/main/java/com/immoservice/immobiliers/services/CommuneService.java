@@ -12,9 +12,9 @@ import com.immoservice.immobiliers.repository.DepartementRepository;
  */
 @Service
 public class CommuneService {
-    private CommuneRepository communeRepository;
-    @SuppressWarnings("unused")
-    private DepartementRepository departementRepository;
+
+    private final CommuneRepository communeRepository;
+    private final DepartementRepository departementRepository;
 
     public CommuneService(CommuneRepository communeRepository, DepartementRepository departementRepository) {
         this.communeRepository = communeRepository;

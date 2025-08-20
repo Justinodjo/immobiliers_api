@@ -1,9 +1,11 @@
 package com.immoservice.immobiliers.config;
 
 import java.util.Arrays;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.access.PermissionEvaluator;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -17,6 +19,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.header.writers.StaticHeadersWriter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
@@ -45,75 +48,115 @@ public class SecurityConfig {
         // private UserDetailsService userDetailsService;
 
         private final String[] SWAGGER_WHITELIST = {
-                        "/v3/api-docs/**",
-                        "/v3/api-docs/public-apis",
+                        "/v3/api-docs/**", // OpenAPI JSON
+                        "/swagger-ui/**", // Swagger UI assets
+                        "/swagger-ui.html", // Swagger main HTML
+                        "/swagger-resources/**", // Swagger resources
+                        "/swagger-resources",
+                        "/public-apis/**",
+                        "/webjars/**",
+
+                        // Auth endpoints
                         "/auth/welcome",
                         "/auth/addUser",
-                        "/api/reset-password",
-                        "/api/request-password-reset",
                         "/auth/login",
                         "/auth/logout",
+                        "/auth/getUsers/{id}",
+                        "/auth/getUsers",
+                        "/fichier/download/{id}",
+                        "/fichier//download/{nom}", "/auth/getUsers/{id}",
+                        "/v3/api-docs/**",
+                        "/swagger-ui/**",
+                        "/swagger-ui.html",
+                        "/auth/getUsers",
+                        "/auth/getAdmins",
+                        "/auth/getManagers",
+                        "/api/roles/liste",
+                        "/fichier/add",
+                        "/auth/delete/{id}",
+                        "/auth/updateUser/{id}",
+                        "/api/paiement/confirm",
+                        "/api/roles/creer",
+                        "/auth/refresh-token",
+                        "/biens/all",
+                        "/biens/search",
+                        "/biens/search**",
+                        "/biens/get/{id}",
+                        "/biens/vues/{id}",
+                        "/biens/noter/{id}",
+                        "/biens/{id}/like",
+                        "/biens/like/**",
+                        "/biens/by-type",
+                        "/typeBiens/get/{id}",
+                        "/typeBiens/all",
+                        "/details_biens/all",
+                        "/details_biens/get/{id}",
+                        "/api/sous-details-biens/{id}",
+                        // Password reset
+                        "/api/reset-password",
+                        "/api/request-password-reset",
+
+                        // Consentement
+                        "/consentement/add",
+                        "/consentement/all",
+                        "/consentement/get/{id}",
+                        "/consentement/delete/{id}",
+                        "/consentement/by-user/{userId}",
+
+                        // Divers
                         "/contact/send",
                         "/tfe/uploads/**",
-                        "/swagger-ui/**",
-                        "/swagger-ui/index.html",
-                        "/public-apis/**",
-                        "/auth/getUsers/{id}", "/auth/getUsers",
-                        "/swagger-resources/**",
-                        "/swagger-resources"
+
+                        // Avis
+                        "/api/avis/add",
+                        "/api/avis/all",
+                        "/api/avis/bien/{id}"
         };
 
         @Bean
-        public UserDetailsService userDetailsService() {
+        UserDetailsService userDetailsService() {
                 return new UserInfoService();
         }
 
         @Bean
-        public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
+        SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
                 return httpSecurity.csrf(csrf -> csrf.disable())
                                 .cors(cors -> cors.configurationSource(corsConfigurationSource())) // CORS avant tout
                                 .authorizeHttpRequests(auth -> auth
                                                 .requestMatchers(SWAGGER_WHITELIST)
                                                 .permitAll()
-                                                .requestMatchers("/fichier/download/{id}",
-                                                                "/fichier//download/{nom}", "/auth/getUsers/{id}",
-                                                                "/auth/getUsers",
-                                                                "/auth/getAdmins",
-                                                                "/auth/getManagers",
-                                                                "/api/roles/liste",
-                                                                "/fichier/add",
-                                                                "/auth/delete/{id}",
-                                                                "/auth/updateUser/{id}",
-                                                                "/api/paiement/confirm",
-                                                                "/api/roles/creer",
-                                                                "/auth/refresh-token",
-                                                                "/biens/all",
-                                                                "/biens/get/{id}",
-                                                                "/typeBiens/get/{id}",
-                                                                "/typeBiens/all",
-                                                                "/details_biens/all",
-                                                                "/details_biens/get/{id}")
-                                                .permitAll()
                                                 .requestMatchers("/reservation/confirm/**", "/reservation/cancel/**")
-                                                .hasAnyRole("ADMIN_ROLES", "MANAGER_ROLES")
+                                                .hasAnyAuthority("ADMIN_ROLES", "MANAGER_ROLES")
                                                 .anyRequest().authenticated())
                                 .sessionManagement(session -> session
                                                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                                 .authenticationProvider(authenticationProvider())
                                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                                 .addFilterBefore(loggingFilter, UsernamePasswordAuthenticationFilter.class)
-                                .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
-                                .addFilterBefore(customFirewallFilter, UsernamePasswordAuthenticationFilter.class)
+                                // .addFilterBefore(rateLimitingFilter,
+                                // UsernamePasswordAuthenticationFilter.class)
+                                // .addFilterBefore(customFirewallFilter,
+                                // UsernamePasswordAuthenticationFilter.class)
                                 .headers(headers -> headers
-                                                .contentSecurityPolicy(csp -> csp
-                                                                .policyDirectives(
-                                                                                "default-src 'self'; script-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none';"))
+                                                .addHeaderWriter(new StaticHeadersWriter("Content-Security-Policy",
+                                                                "default-src 'self'; " +
+                                                                                "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://translate.googleapis.com https://www.gstatic.com; "
+                                                                                +
+                                                                                "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://www.gstatic.com; "
+                                                                                +
+                                                                                "img-src 'self' data:; " +
+                                                                                "connect-src 'self' http://localhost:8080 https://api.yourbackend.com; "
+                                                                                +
+                                                                                "font-src 'self' https://cdnjs.cloudflare.com; "
+                                                                                +
+                                                                                "frame-src 'self'; " +
+                                                                                "object-src 'none';"))
                                                 .frameOptions(frameOptions -> frameOptions.deny()))
                                 .build();
         }
 
         @Bean
-        public AuthenticationProvider authenticationProvider() {
+        AuthenticationProvider authenticationProvider() {
                 DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider();
                 authenticationProvider.setUserDetailsService(userDetailsService());
                 authenticationProvider.setPasswordEncoder(passwordEncoder());
@@ -121,17 +164,22 @@ public class SecurityConfig {
         }
 
         @Bean
-        public PasswordEncoder passwordEncoder() {
+        PasswordEncoder passwordEncoder() {
                 return new BCryptPasswordEncoder();
         }
 
         @Bean
-        public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+        AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
                 return config.getAuthenticationManager();
         }
 
         @Bean
-        public UrlBasedCorsConfigurationSource corsConfigurationSource() {
+        public PermissionEvaluator permissionEvaluator() {
+                return new CustomPermissionEvaluator();
+        }
+
+        @Bean
+        UrlBasedCorsConfigurationSource corsConfigurationSource() {
                 CorsConfiguration configuration = new CorsConfiguration();
                 // configuration.setAllowedOrigins(Arrays.asList("https://www.mainsdorplus.com","http://localhost:5173",
                 // "https://mainsdorplus.com"));
@@ -139,9 +187,7 @@ public class SecurityConfig {
                 configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
                 configuration.setAllowedHeaders(Arrays.asList("Authorization", "Cache-Control", "Content-Type",
                                 "X-Requested-With", "Accept", "Origin", "Accept-Encoding", "X-CSRF-Token"));
-                configuration.setExposedHeaders(Arrays.asList(
-                                "Authorization",
-                                "Content-Disposition"));
+                configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Disposition"));
                 configuration.setAllowCredentials(true);
 
                 UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
@@ -150,7 +196,7 @@ public class SecurityConfig {
         }
 
         @Bean
-        public CorsFilter corsFilter() {
+        CorsFilter corsFilter() {
                 return new CorsFilter(corsConfigurationSource());
         }
 }

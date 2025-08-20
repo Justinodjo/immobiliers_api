@@ -1,41 +1,43 @@
 package com.immoservice.immobiliers.controller;
 
-import java.util.List;
-
+import com.immoservice.immobiliers.entities.ConsentementRGPD;
+import com.immoservice.immobiliers.services.ConsentementRGPDService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import com.immoservice.immobiliers.entities.*;
-import com.immoservice.immobiliers.services.ConsentementRGPDService;
-import com.immoservice.immobiliers.services.UserInfoService;
+import java.util.List;
+import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/consentements")
+@RequestMapping("/consentement")
 public class ConsentementRGPDController {
 
     @Autowired
-    private ConsentementRGPDService consentementRGPDService;
+    private ConsentementRGPDService consentementService;
 
-    @Autowired
-    private UserInfoService userInfoService; // si vous avez un service pour récupérer l'utilisateur
-
-    // Enregistrer un consentement
-    @PostMapping("/enregistrer")
-    public ConsentementRGPD enregistrerConsentement(
-            @RequestParam Integer userId,
-            @RequestParam TypeConsentement type,
-            @RequestParam StatutConsentement statut,
-            @RequestParam String ip,
-            @RequestParam(required = false) String version) {
-
-        UserInfo user = userInfoService.getUser(userId); // à implémenter si ce n’est pas déjà fait
-        return consentementRGPDService.enregistrerConsentement(user, type, statut, ip, version);
+    @PostMapping("/add")
+    public ConsentementRGPD addConsentement(@RequestBody ConsentementRGPD consentement) {
+        
+        return consentementService.saveConsentement(consentement);
     }
 
-    // Lister tous les consentements d'un utilisateur
-    @GetMapping("/utilisateur/{userId}")
-    public List<ConsentementRGPD> getConsentementsParUtilisateur(@PathVariable Integer userId) {
-        UserInfo user = userInfoService.getUser(userId);
-        return consentementRGPDService.obtenirConsentementsParUser(user);
+    @GetMapping("/all")
+    public List<ConsentementRGPD> getAllConsentements() {
+        return consentementService.getAllConsentements();
+    }
+
+    @GetMapping("/get/{id}")
+    public Optional<ConsentementRGPD> getConsentementById(@PathVariable Long id) {
+        return consentementService.getConsentementById(id);
+    }
+
+    @DeleteMapping("/delete/{id}")
+    public void deleteConsentement(@PathVariable Long id) {
+        consentementService.deleteConsentement(id);
+    }
+
+    @GetMapping("/by-user/{userId}")
+    public List<ConsentementRGPD> getByUserId(@PathVariable Long userId) {
+        return consentementService.getConsentementsByUserId(userId);
     }
 }

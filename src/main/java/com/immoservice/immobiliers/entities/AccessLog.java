@@ -21,6 +21,10 @@ public class AccessLog {
     private int responseStatus;
     private LocalDateTime accessTime;
 
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private UserInfo utilisateur;
+
     // Constructeurs
     public AccessLog() {
         this.accessTime = LocalDateTime.now();
@@ -93,5 +97,13 @@ public class AccessLog {
 
     public void setContentType(String contentType) {
         this.contentType = contentType;
+    }
+
+    public UserInfo getUtilisateur() {
+        return utilisateur;
+    }
+
+    public void setUtilisateur(UserInfo utilisateur) {
+        this.utilisateur = utilisateur;
     }
 }

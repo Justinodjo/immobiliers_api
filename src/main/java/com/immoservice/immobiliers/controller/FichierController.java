@@ -2,7 +2,6 @@ package com.immoservice.immobiliers.controller;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -50,7 +49,7 @@ public class FichierController {
         if (fichierData.isPresent()) {
             Fichier fichier = fichierData.get();
             try {
-                Path filePath = Paths.get(pathFile + fichier.getNom());
+                Path filePath = Path.of(pathFile + fichier.getNom());
                 Resource resource = new UrlResource(filePath.toUri());
                 if (!resource.exists()) {
                     return new ResponseEntity<>("Fichier non trouvé", HttpStatus.NOT_FOUND);

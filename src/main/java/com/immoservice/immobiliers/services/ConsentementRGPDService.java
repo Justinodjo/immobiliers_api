@@ -1,34 +1,59 @@
 package com.immoservice.immobiliers.services;
 
-import java.util.Date;
-import java.util.List;
-import org.springframework.stereotype.Service;
-
-import com.immoservice.immobiliers.entities.*;
+import com.immoservice.immobiliers.entities.ConsentementRGPD;
 import com.immoservice.immobiliers.repository.ConsentementRGPDRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+// import org.springframework.security.core.Authentication;
+// import org.springframework.security.core.context.SecurityContextHolder;
+// import org.springframework.web.server.ResponseStatusException;
+// import org.springframework.http.HttpStatus;
+// import org.springframework.security.core.userdetails.UsernameNotFoundException;
+// import com.immoservice.immobiliers.entities.UserInfo;
+// import com.immoservice.immobiliers.repository.UserInfoRepository;
+
+
+import java.util.List;
+import java.util.Optional;
 
 @Service
 public class ConsentementRGPDService {
 
-    private final ConsentementRGPDRepository repository;
+    @Autowired
+    private ConsentementRGPDRepository consentementRepository;
 
-    public ConsentementRGPDService(ConsentementRGPDRepository repository) {
-        this.repository = repository;
+    //  @Autowired
+    // private UserInfoRepository userInfoRepository;
+
+    public ConsentementRGPD saveConsentement(ConsentementRGPD consentement) {
+    //     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+    // if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
+    //     throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Utilisateur non authentifié");
+    // }
+
+    // String email = authentication.getName(); // ou récupérer via UserDetails
+
+    // UserInfo userInfo = userInfoRepository.findByEmail(email)
+    //         .orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé avec l'email: " + email));
+
+    // consentement.setUserInfo(userInfo); // Associe l'utilisateur connecté au consentement
+        return consentementRepository.save(consentement);
     }
 
-    public ConsentementRGPD enregistrerConsentement(UserInfo user, TypeConsentement type, StatutConsentement statut,
-            String ip, String version) {
-        ConsentementRGPD consentement = new ConsentementRGPD();
-        consentement.setUser(user);
-        consentement.setTypeConsentement(type);
-        consentement.setStatut(statut);
-        consentement.setDateConsentement(new Date());
-        consentement.setIpAddress(ip);
-        consentement.setVersionPolitique(version);
-        return repository.save(consentement);
+    public List<ConsentementRGPD> getAllConsentements() {
+        return consentementRepository.findAll();
     }
 
-    public List<ConsentementRGPD> obtenirConsentementsParUser(UserInfo user) {
-        return repository.findByUser(user);
+    public Optional<ConsentementRGPD> getConsentementById(Long id) {
+        return consentementRepository.findById(id);
+    }
+
+    public void deleteConsentement(Long id) {
+        consentementRepository.deleteById(id);
+    }
+
+    public List<ConsentementRGPD> getConsentementsByUserId(Long userId) {
+        return consentementRepository.findByUserInfoId(userId);
     }
 }

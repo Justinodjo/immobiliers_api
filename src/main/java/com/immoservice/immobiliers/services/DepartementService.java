@@ -5,17 +5,22 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 import com.immoservice.immobiliers.entities.Departement;
+import com.immoservice.immobiliers.entities.Pays;
 import com.immoservice.immobiliers.repository.DepartementRepository;
+import com.immoservice.immobiliers.repository.PaysRepository;
 import com.immoservice.immobiliers.repository.CommuneRepository;
 
 @Service
 public class DepartementService {
     private DepartementRepository departementRepository;
     private CommuneRepository communeRepository;
+    private PaysRepository paysRepository;
 
-    public DepartementService(DepartementRepository departementRepository, CommuneRepository communeRepository) {
+    public DepartementService(DepartementRepository departementRepository, CommuneRepository communeRepository,
+            PaysRepository paysRepository) {
         this.departementRepository = departementRepository;
         this.communeRepository = communeRepository;
+        this.paysRepository = paysRepository;
     }
 
     // Afficher la liste de tous les departements de la base de données
@@ -32,6 +37,12 @@ public class DepartementService {
 
     public Departement createDepartement(Departement departement) {
         return departementRepository.save(departement);
+    }
+
+    public List<Departement> getDepartementsByPays(Long paysId) {
+        Pays pays = paysRepository.findById(paysId)
+                .orElseThrow(() -> new RuntimeException("Pays non trouvé avec ID: " + paysId));
+        return departementRepository.findByPays(pays);
     }
 
     // Supprimer un departement de la base de données

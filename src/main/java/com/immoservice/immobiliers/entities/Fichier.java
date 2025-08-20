@@ -11,6 +11,7 @@ import jakarta.persistence.ManyToOne;
 
 @Entity
 public class Fichier {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -19,6 +20,7 @@ public class Fichier {
     private String originalName;
     private Long taille;
     private String typeFichier;
+    private Boolean principal = false;
     private String url;
     @JsonBackReference
     @ManyToOne
@@ -98,6 +100,18 @@ public class Fichier {
 
     public void setUrl(String url) {
         this.url = url;
+    }
+
+    public Boolean getPrincipal() {
+        return principal;
+    }
+
+    public void setPrincipal(Boolean principal) {
+        this.principal = principal;
+    }
+
+    public boolean isPrincipal() {
+        return principal;
     }
 
 }

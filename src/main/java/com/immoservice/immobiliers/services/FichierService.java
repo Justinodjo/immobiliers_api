@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -34,7 +33,7 @@ public class FichierService {
         }
 
         // Définir le chemin du fichier
-        Path path = Paths.get(pathFile + nom + extension);
+        Path path = Path.of(pathFile + nom + extension);
         file.transferTo(new File(path.toString()));
 
         // Créer un objet Fichier et le sauvegarder en base de données
@@ -58,7 +57,7 @@ public class FichierService {
         if (fichierOptional.isPresent()) {
             Fichier fichier = fichierOptional.get();
             String fileName = fichier.getNom(); // Nom du fichier à supprimer
-            Path filePath = Paths.get(pathFile + fileName); // Chemin du fichier dans le dossier
+            Path filePath = Path.of(pathFile + fileName); // Chemin du fichier dans le dossier
 
             // Supprimer le fichier physique
             try {
