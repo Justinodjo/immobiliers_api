@@ -3,6 +3,10 @@ package com.immoservice.immobiliers.entities;
 public enum TypeSousDetailsBiens {
     CHAMBRE_A_COUCHER,
     CHAMBRE_D_ENFANT,
+    DEUX_CHAMBRES_UN_SALON,
+    TROIS_CHAMBRES_UN_SALON,
+    QUATRE_CHAMBRES_UN_SALON,
+    CINQ_CHAMBRES_UN_SALON,
     CHAMBRE_D_AMIS,
     SALON_DE_DETENTE,
     SALON_DE_RECEPTION,
@@ -17,6 +21,6 @@ public enum TypeSousDetailsBiens {
     BUREAU_PROFESSIONNEL,
     GRENIER,
     CAVE,
-    GARAGE
+    GARAGE,
 
 }

@@ -7,10 +7,11 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 // import org.springframework.security.core.userdetails.UsernameNotFoundException;
-
+import jakarta.validation.Valid;
 import com.immoservice.immobiliers.entities.AuthRequest;
 import com.immoservice.immobiliers.entities.Role;
 import com.immoservice.immobiliers.entities.UserInfo;
+import com.immoservice.immobiliers.dto.UserInfoDTO;
 import com.immoservice.immobiliers.logout.BlackList;
 import com.immoservice.immobiliers.response.AuthResponse;
 import com.immoservice.immobiliers.services.JwtService;
@@ -47,8 +48,8 @@ public class UserController {
     }
 
     @PostMapping("/addUser")
-    public UserInfo addUser(@RequestBody UserInfo userInfo) {
-        return userInfoService.addUser(userInfo);
+    public UserInfo addUser(@RequestBody @Valid UserInfoDTO userInfoDTO) {
+        return userInfoService.addUser(userInfoDTO);
     }
 
     // @PostMapping("/login")
@@ -128,21 +129,25 @@ public class UserController {
     }
 
     @GetMapping("/user/{username}")
+    @PreAuthorize("hasAuthority('VIEW_USER')")
     public UserInfoDetails getUserDetails(@PathVariable String username) {
         return userInfoService.getUserDetails(username);
     }
 
     @GetMapping("/getUsers/{id}")
+    @PreAuthorize("hasAuthority('VIEW_USER')")
     public UserInfo getAllUsers(@PathVariable Integer id) {
         return userInfoService.getUser(id);
     }
 
     @PutMapping("/updateUser/{id}")
-    public UserInfo updateUser(@PathVariable Integer id, @RequestBody UserInfo userInfo) {
-        return userInfoService.updateUser(id, userInfo);
+    @PreAuthorize("hasAuthority('UPDATE_USER')")
+    public UserInfo updateUser(@PathVariable Integer id, @RequestBody @Valid UserInfoDTO userInfoDTO) {
+        return userInfoService.updateUser(id, userInfoDTO);
     }
 
     @PutMapping("/{id}/roles")
+    @PreAuthorize("hasAuthority('MANAGE_ROLES')")
     public UserInfo updateUserRoles(@PathVariable Integer id, @RequestBody Collection<Role> newRoles) {
         return userInfoService.updateUserRoles(id, newRoles);
     }
@@ -151,5 +156,19 @@ public class UserController {
     public void deleteUser(@PathVariable Integer id) {
         userInfoService.deleteUser(id);
         // "User with ID " + id + " has been deleted";
+    }
+
+    @GetMapping("/gestionnaires/{id}")
+    public List<UserInfo> suggGestionnaires(
+            @PathVariable Integer id,
+            @RequestParam(defaultValue = "50") int scoreMin) {
+        return userInfoService.proposerGestionnairesPourProprietaire(id, scoreMin);
+    }
+
+    @GetMapping("/administrateurs/{id}")
+    public List<UserInfo> suggAdmins(
+            @PathVariable Integer id,
+            @RequestParam(defaultValue = "50") int scoreMin) {
+        return userInfoService.proposerAdministrateursPourGestionnaire(id, scoreMin);
     }
 }

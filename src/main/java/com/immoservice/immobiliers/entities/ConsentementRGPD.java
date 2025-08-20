@@ -11,10 +11,6 @@ public class ConsentementRGPD {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    private UserInfo user;
-
     @Enumerated(EnumType.STRING)
     private TypeConsentement typeConsentement;
 
@@ -30,6 +26,10 @@ public class ConsentementRGPD {
 
     private String ipAddress;
 
+    @ManyToOne
+    @JoinColumn(name = "user_info_id")
+    private UserInfo userInfo;
+
     @Temporal(TemporalType.TIMESTAMP)
     private Date createdAt = new Date();
 
@@ -42,14 +42,6 @@ public class ConsentementRGPD {
 
     public void setId(Long id) {
         this.id = id;
-    }
-
-    public UserInfo getUser() {
-        return user;
-    }
-
-    public void setUser(UserInfo user) {
-        this.user = user;
     }
 
     public TypeConsentement getTypeConsentement() {
@@ -116,6 +108,13 @@ public class ConsentementRGPD {
         this.updatedAt = updatedAt;
     }
 
+    public UserInfo getUserInfo() {
+        return userInfo;
+    }
+
+    public void setUserInfo(UserInfo userInfo) {
+        this.userInfo = userInfo;
+    }
     // Getters et setters...
 
 }

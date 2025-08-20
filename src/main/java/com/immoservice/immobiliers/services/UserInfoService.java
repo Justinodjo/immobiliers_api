@@ -2,9 +2,14 @@ package com.immoservice.immobiliers.services;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -16,20 +21,37 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.immoservice.immobiliers.dto.UserInfoBadges;
+import com.immoservice.immobiliers.dto.UserInfoDTO;
 import com.immoservice.immobiliers.entities.AuthRequest;
+import com.immoservice.immobiliers.entities.Contrats;
+import com.immoservice.immobiliers.entities.PasswordResetToken;
+import com.immoservice.immobiliers.entities.Permission;
 import com.immoservice.immobiliers.entities.Role;
+import com.immoservice.immobiliers.entities.StatusContrat;
 import com.immoservice.immobiliers.entities.UserInfo;
+import com.immoservice.immobiliers.exceptions.RoleNotFoundException;
+import com.immoservice.immobiliers.exceptions.UserAlreadyExistsException;
+import com.immoservice.immobiliers.repository.BiensImmobiliersRepository;
+import com.immoservice.immobiliers.repository.ContratsRepository;
+import com.immoservice.immobiliers.repository.PasswordResetTokenRepository;
 import com.immoservice.immobiliers.repository.RoleRepository;
 import com.immoservice.immobiliers.repository.UserInfoRepository;
 import com.immoservice.immobiliers.response.AuthResponse;
 
+import jakarta.validation.Valid;
+
 @Service
 public class UserInfoService implements UserDetailsService {
+    private static final Logger logger = LoggerFactory.getLogger(UserInfoService.class);
     @Autowired
     private UserInfoRepository userInfoRepository;
 
     @Autowired
     private RoleRepository roleRepository;
+
+    @Autowired
+    private ContratsService contratsService;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -39,6 +61,15 @@ public class UserInfoService implements UserDetailsService {
 
     @Autowired
     private JavaMailSender mailSender;
+
+    @Autowired
+    private PasswordResetTokenRepository passwordResetTokenRepository;
+
+    @Autowired
+    private BiensImmobiliersRepository biensImmobiliersRepository;
+
+    @Autowired
+    private ContratsRepository contratsRepository;
 
     // Méthode pour trouver un utilisateur par email
     // @Cacheable("userByEmail")
@@ -73,54 +104,53 @@ public class UserInfoService implements UserDetailsService {
         mailSender.send(email);
     }
 
-    public UserInfo addUser(UserInfo userInfo) {
-        // Vérifier si un utilisateur avec le même email existe déjà
-        if (userInfoRepository.findByEmail(userInfo.getEmail()).isPresent()) {
-            throw new IllegalArgumentException("Un utilisateur avec cet email existe déjà : " + userInfo.getEmail());
+    // Utilisation de DTO et validation
+    public UserInfo addUser(@Valid UserInfoDTO userInfoDTO) {
+        if (userInfoRepository.findByEmail(userInfoDTO.getEmail()).isPresent()) {
+            logger.warn("Tentative de création d'un utilisateur déjà existant : {}", userInfoDTO.getEmail());
+            throw new UserAlreadyExistsException(
+                    "Un utilisateur avec cet email existe déjà : " + userInfoDTO.getEmail());
+        }
+        if (userInfoRepository.findByName(userInfoDTO.getName()).isPresent()) {
+            logger.warn("Tentative de création d'un utilisateur déjà existant (nom) : {}", userInfoDTO.getName());
+            throw new UserAlreadyExistsException("Un utilisateur avec ce nom existe déjà : " + userInfoDTO.getName());
         }
 
-        // Vérifier si un utilisateur avec le même nom existe déjà
-        if (userInfoRepository.findByName(userInfo.getName()).isPresent()) {
-            throw new IllegalArgumentException("Un utilisateur avec ce nom existe déjà : " + userInfo.getName());
-        }
+        // Mapping DTO -> Entity (à adapter selon ton DTO)
+        UserInfo userInfo = new UserInfo();
+        userInfo.setName(userInfoDTO.getName());
+        userInfo.setSecondName(userInfoDTO.getSecondName());
+        userInfo.setEmail(userInfoDTO.getEmail());
+        userInfo.setNumero(userInfoDTO.getNumero());
+        userInfo.setAdresse(userInfoDTO.getAdresse());
+        userInfo.setDateNaissance(userInfoDTO.getDateNaissance());
+        userInfo.setPassword(passwordEncoder.encode(userInfoDTO.getPassword()));
 
-        // Encoder le mot de passe
-        // userInfo.setPassword(passwordEncoder.encode(userInfo.getPassword()));
-
+        // Gestion des rôles
         Collection<Role> validatedRoles = new ArrayList<>();
-        if (!userInfo.getRoles().isEmpty()) {
-            // Vérifiez et associez les rôles existants
-            for (Role role : userInfo.getRoles()) {
-                if (role.getNomRole() == null || role.getNomRole().isEmpty()) {
-                    throw new IllegalArgumentException("Le rôle de l'utilisateur ne peut pas être vide ou null.");
-                }
-                Optional<Role> existingRole = roleRepository.findByNomRole(role.getNomRole());
+        if (userInfoDTO.getRoles() != null && !userInfoDTO.getRoles().isEmpty()) {
+            for (String roleName : userInfoDTO.getRoles()) {
+                Optional<Role> existingRole = roleRepository.findByNomRole(roleName);
                 if (existingRole.isPresent()) {
                     validatedRoles.add(existingRole.get());
                 } else {
-                    throw new IllegalArgumentException("Rôle non trouvé : " + role.getNomRole());
+                    logger.error("Rôle non trouvé : {}", roleName);
+                    throw new RoleNotFoundException("Rôle non trouvé : " + roleName);
                 }
             }
         } else {
-            // Si aucun rôle n'est spécifié, récupérez le rôle par défaut "CLIENTS_ROLES"
             Optional<Role> defaultRole = roleRepository.findByNomRole("CLIENTS_ROLES");
             if (defaultRole.isPresent()) {
                 validatedRoles.add(defaultRole.get());
             } else {
-                throw new IllegalArgumentException("Rôle par défaut non trouvé : CLIENTS_ROLES");
+                throw new RoleNotFoundException("Rôle par défaut non trouvé : CLIENTS_ROLES");
             }
         }
-
         userInfo.setRoles(validatedRoles);
 
-        // Encoder le mot de passe
-        userInfo.setPassword(passwordEncoder.encode(userInfo.getPassword()));
-
         UserInfo savedUserInfo = userInfoRepository.save(userInfo);
-        // Envoyer l'email de bienvenue avec le mot de passe et l'URL de
-        // réinitialisation
-        sendWelcomeEmailWithReset(savedUserInfo);
-
+        logger.info("Utilisateur créé : {}", savedUserInfo.getEmail());
+        // sendWelcomeEmailWithReset(savedUserInfo);
         return savedUserInfo;
     }
 
@@ -133,8 +163,18 @@ public class UserInfoService implements UserDetailsService {
         if (passwordEncoder.matches(authRequest.getPassword(), user.getPassword())) {
             // Garder les rôles en tant que GrantedAuthority
             Collection<GrantedAuthority> authorities = user.getRoles().stream()
-                    .map(role -> new SimpleGrantedAuthority(role.getNomRole())) // Créer des SimpleGrantedAuthority
-                    .collect(Collectors.toList());
+                    .flatMap(role -> {
+                        // Autorité du rôle
+                        var roleAuthority = new SimpleGrantedAuthority("ROLE_" + role.getNomRole());
+
+                        // Autorités des permissions
+                        var permissionAuthorities = role.getPermissions().stream()
+                                .map(permission -> new SimpleGrantedAuthority(permission.getNom()));
+
+                        // Fusion rôle + permissions
+                        return Stream.concat(Stream.of(roleAuthority), permissionAuthorities);
+                    })
+                    .collect(Collectors.toSet());
 
             // Assurer que les rôles sont bien présents
             if (authorities.isEmpty()) {
@@ -147,13 +187,19 @@ public class UserInfoService implements UserDetailsService {
                     .map(fichier -> fichier.getNom()) // Extrait le nom du fichier en String
                     .collect(Collectors.toList());
             user.getFichiers().size();
+
+            List<String> permissions = user.getRoles().stream()
+                    .flatMap(role -> role.getPermissions().stream())
+                    .map(Permission::getNom)
+                    .distinct()
+                    .toList();
             // Générer le token JWT
             String token = jwtService.generateToken(user.getName(), user.getEmail(), authorities);
 
             // Retourner la réponse d'authentification avec le token et les informations
             // utilisateur
             return new AuthResponse(user.getId(), token, user.getName(), user.getSecondName(), user.getNumero(),
-                    user.getEmail(), fichierPrincipal, fichiers, authorities);
+                    user.getEmail(), fichierPrincipal, fichiers, authorities, permissions);
         } else {
             // Lancer une exception si le mot de passe ne correspond pas
             throw new UsernameNotFoundException("Invalid username or password");
@@ -172,11 +218,27 @@ public class UserInfoService implements UserDetailsService {
     }
 
     public List<UserInfo> getAllManagers() {
-        return getUsersByRole("ADMIN_ROLES");
+        return getUsersByRole("MANAGER_ROLES");
     }
 
     public List<UserInfo> getAllUser() {
         return userInfoRepository.findAll();
+    }
+
+    // Gestion réelle des tokens de reset password
+    public void createPasswordResetTokenForUser(UserInfo userInfo, String token) {
+        PasswordResetToken myToken = new PasswordResetToken(token, userInfo,
+                new Date(System.currentTimeMillis() + 3600000));
+        passwordResetTokenRepository.save(myToken);
+    }
+
+    public void resetPassword(String token, String newPassword) {
+        PasswordResetToken passwordResetToken = passwordResetTokenRepository.findByToken(token)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid token"));
+        UserInfo userInfo = passwordResetToken.getUserInfo();
+        userInfo.setPassword(passwordEncoder.encode(newPassword));
+        userInfoRepository.save(userInfo);
+        passwordResetTokenRepository.delete(passwordResetToken);
     }
 
     public UserInfo getUser(Integer id) {
@@ -184,26 +246,18 @@ public class UserInfoService implements UserDetailsService {
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with id: " + id));
     }
 
-    public UserInfo updateUser(Integer id, UserInfo userInfo) {
-        // Récupérer l'utilisateur existant
+    public UserInfo updateUser(Integer id, @Valid UserInfoDTO userInfoDTO) {
         UserInfo existingUser = userInfoRepository.findById(id)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with id: " + id));
-
-        // Mettre à jour les champs nécessaires (en gardant les rôles inchangés ici)
-        existingUser.setName(userInfo.getName());
-        existingUser.setSecondName(userInfo.getSecondName());
-        existingUser.setEmail(userInfo.getEmail());
-        existingUser.setNumero(userInfo.getNumero());
-        existingUser.setAdresse(userInfo.getAdresse());
-        existingUser.setFichier(userInfo.getFichier());
-        // Encoder et mettre à jour le mot de passe seulement s’il a changé
-        if (!passwordEncoder.matches(userInfo.getPassword(), existingUser.getPassword())) {
-            existingUser.setPassword(passwordEncoder.encode(userInfo.getPassword()));
+        existingUser.setName(userInfoDTO.getName());
+        existingUser.setSecondName(userInfoDTO.getSecondName());
+        existingUser.setEmail(userInfoDTO.getEmail());
+        existingUser.setNumero(userInfoDTO.getNumero());
+        existingUser.setAdresse(userInfoDTO.getAdresse());
+        existingUser.setDateNaissance(userInfoDTO.getDateNaissance());
+        if (!passwordEncoder.matches(userInfoDTO.getPassword(), existingUser.getPassword())) {
+            existingUser.setPassword(passwordEncoder.encode(userInfoDTO.getPassword()));
         }
-
-        // ⚠️ Ne pas toucher à existingUser.setRoles(...) ici !
-        // Si vous voulez mettre à jour les rôles, utilisez updateUserRoles séparément
-
         return userInfoRepository.save(existingUser);
     }
 
@@ -265,4 +319,64 @@ public class UserInfoService implements UserDetailsService {
 
         mailSender.send(email);
     }
+
+    public int getUserScore(Integer userId) {
+        UserInfo user = userInfoRepository.findById(userId)
+                .orElseThrow(() -> new UsernameNotFoundException("Utilisateur introuvable"));
+
+        return contratsService.calculerScoreUtilisateur(user);
+    }
+
+    public List<UserInfo> proposerGestionnairesPourProprietaire(Integer id, int scoreMin) {
+        UserInfo proprietaire = userInfoRepository.findById(
+                id)
+                .orElseThrow(() -> new UsernameNotFoundException("Propriétaire non trouvé"));
+
+        String adresseProprietaire = proprietaire.getAdresse();
+
+        return getUsersByRole("MANAGER_ROLES").stream()
+                .filter(g -> g.getAdresse() != null && g.getAdresse().equalsIgnoreCase(adresseProprietaire)) // filtre
+                // par zone
+                .filter(g -> getUserScore(g.getId()) >= scoreMin) // filtre par score
+                .collect(Collectors.toList());
+    }
+
+    public List<UserInfo> proposerAdministrateursPourGestionnaire(Integer id, int scoreMin) {
+        UserInfo gestionnaire = userInfoRepository.findById(
+                id)
+                .orElseThrow(() -> new UsernameNotFoundException("Gestionnaire non trouvé"));
+
+        String adresseGestionnaire = gestionnaire.getAdresse();
+
+        return getUsersByRole("ADMIN_ROLES").stream()
+                .filter(admin -> admin.getAdresse() != null && admin.getAdresse().equalsIgnoreCase(adresseGestionnaire))
+                .filter(admin -> getUserScore(admin.getId()) >= scoreMin)
+                .collect(Collectors.toList());
+    }
+
+    public UserInfoBadges genererBadgesPourUtilisateur(UserInfo userInfo) {
+        // Vérifie si l'utilisateur a le rôle "PROPRIETAIRE_ROLES"
+        boolean isProprietaire = userInfo.getRoles().stream()
+                .anyMatch(role -> "PROPRIETAIRE_ROLES".equalsIgnoreCase(role.getNomRole()));
+
+        // Badge propriétaire vérifié seulement si c'est un propriétaire et qu'il
+        // possède au moins un bien
+        boolean proprietaireVerifie = isProprietaire && biensImmobiliersRepository.countByUserInfo(userInfo) > 0;
+
+        // Récupération des contrats liés à l’utilisateur
+        List<Contrats> contrats = contratsRepository.findByUserInfo(userInfo);
+
+        // ✅ Badge locataire sérieux : tous les contrats actifs et aucun frais
+        // d’annulation
+        boolean locataireSerieux = !contrats.isEmpty()
+                && contrats.stream().allMatch(c -> c.getStatus() == StatusContrat.ACTIF)
+                && contrats.stream().noneMatch(c -> c.getFraisAnnulation() != null && c.getFraisAnnulation() > 0);
+
+        return new UserInfoBadges(
+                userInfo.getId(),
+                userInfo.getName() + " " + userInfo.getSecondName(),
+                proprietaireVerifie,
+                locataireSerieux);
+    }
+
 }

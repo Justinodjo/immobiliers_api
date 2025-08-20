@@ -16,6 +16,7 @@ import com.immoservice.immobiliers.services.JwtService;
 import com.immoservice.immobiliers.services.UserInfoService;
 
 import java.io.IOException;
+import java.util.List;
 
 @Component
 public class JwtFilter extends OncePerRequestFilter {
@@ -24,14 +25,14 @@ public class JwtFilter extends OncePerRequestFilter {
     @Autowired
     private UserInfoService userInfoService;
 
+    @SuppressWarnings("null")
     @Override
-    protected void doFilterInternal(@SuppressWarnings("null") HttpServletRequest request,
-            @SuppressWarnings("null") HttpServletResponse response, @SuppressWarnings("null") FilterChain filterChain)
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         String authHeader = request.getHeader("Authorization");
         String token = null;
         String userName = null;
-        if (authHeader != null && authHeader.startsWith("Bearer")) {
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
             token = authHeader.substring(7);
             userName = jwtService.extractUserName(token);
         }

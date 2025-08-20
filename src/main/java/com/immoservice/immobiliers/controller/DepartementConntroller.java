@@ -64,6 +64,10 @@ public class DepartementConntroller {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/by-pays/{paysId}")
+    public ResponseEntity<List<Departement>> getDepartementsByPays(@PathVariable Long paysId) {
+        return ResponseEntity.ok(departementService.getDepartementsByPays(paysId));
+    }
     /*
      * @GetMapping("/{idDepartement}/communes")
      * public List<Commune> getCommunesByDepartement(@PathVariable Long

@@ -1,12 +1,16 @@
 package com.immoservice.immobiliers.entities;
 
-import java.util.*;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
+
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -20,29 +24,26 @@ public class Contrats {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private String status; // actif, resilié, expiré
+    @Enumerated(EnumType.STRING)
+    private StatusContrat status; // actif, resilié, expiré
     private Double loyerMensuel;
     private Double prixTotal;
-    private Date dateDebut;
-    private Date dateFin;
+    private LocalDate dateDebut;
+    private LocalDate dateFin;
     private Double fraisAnnulation;
     @Enumerated(EnumType.STRING)
     private TypeContrat typeContrat;
-
-    public TypeContrat getTypeContrat() {
-        return typeContrat;
-    }
-
-    public void setTypeContrat(TypeContrat typeContrat) {
-        this.typeContrat = typeContrat;
-    }
+    private Double commission;
+    @ManyToOne
+    @JoinColumn(name = "gestionnaire_id", nullable = true)
+    private UserInfo gestionnaire;
 
     @ManyToOne
     @JoinColumn(name = "user_info_id") // Clé étrangère pour lier UserInfo à Reservation
     private UserInfo userInfo;
 
-    @ManyToMany(cascade = { CascadeType.PERSIST, CascadeType.MERGE,
-            CascadeType.REMOVE, CascadeType.REFRESH })
+    @JsonManagedReference
+    @ManyToMany(cascade = { CascadeType.PERSIST, CascadeType.MERGE })
     @JoinTable(name = "contrats__biens_immobiliere", joinColumns = @JoinColumn(name = "contrats_id"), inverseJoinColumns = @JoinColumn(name = "biens_immobiliere_id"))
     private List<BiensImmobiliers> biensImmobiliers = new ArrayList<>();
 
@@ -50,11 +51,10 @@ public class Contrats {
     public Double calculatePrixTotal() {
         double total = biensImmobiliers.stream()
                 .mapToDouble(biensImmo -> {
-                    // Si prix est 0 ou non valide, le considérer comme 0
-                    int prix = biensImmo.getPrix();
-                    // Si le prix est 0, on peut choisir de le traiter comme invalide ou de
-                    // l'ignorer
-                    return (prix > 0) ? prix : 0.0; // Ignorer les prix invalides
+
+                    // Si le prix est null ou invalide, on le considère comme 0
+                    Double prix = biensImmo.getPrix(); // Changer le type de prix pour Double
+                    return (prix != null && prix > 0) ? prix : 0.0; // Ignorer les prix invalides
                 })
                 .sum();
 
@@ -64,16 +64,15 @@ public class Contrats {
         return total;
     }
 
+    // ✅ Vérifie si échéance est proche
     public boolean estEcheanceProchaine(int joursAvantEcheance) {
-        Date dateActuelle = new Date();
-        long difference = dateFin.getTime() - dateActuelle.getTime();
-
-        long joursRestants = difference / (24 * 60 * 60 * 1000);
-
+        LocalDate dateActuelle = LocalDate.now();
+        long joursRestants = ChronoUnit.DAYS.between(dateActuelle, dateFin);
         return joursRestants <= joursAvantEcheance;
     }
 
-    public void annulerContrat(Date dateAnnulation) {
+    // ✅ Annulation de contrat
+    public void annulerContrat(LocalDate dateAnnulation) {
         switch (typeContrat) {
             case MEUBLEE:
                 fraisAnnulation = calculerFraisAnnulationMeublee(dateAnnulation);
@@ -82,38 +81,45 @@ public class Contrats {
                 fraisAnnulation = calculerFraisAnnulationNonMeublee(dateAnnulation);
                 break;
             default:
-                // throw UnsupportedOperationException("Type de Contrat non supporté");
+                fraisAnnulation = 0.0;
         }
+        this.status = StatusContrat.RESILIE;
     }
 
-    private double calculerFraisAnnulationMeublee(Date dateAnnulation) {
-        if (dateAnnulation.before(dateDebut)) {
-            fraisAnnulation = (double) 0;
-        } else if (dateAnnulation.after(dateDebut) && dateAnnulation.before(dateFin)) {
-            long differenceAnnulation = dateFin.getTime() - dateAnnulation.getTime();
-            long mois = differenceAnnulation / (30 * 24 * 60 * 60 * 1000);
-            fraisAnnulation = loyerMensuel * mois * 0.5;
+    public TypeContrat getTypeContrat() {
+        return typeContrat;
+    }
+
+    public void setTypeContrat(TypeContrat typeContrat) {
+        this.typeContrat = typeContrat;
+    }
+
+    private double calculerFraisAnnulationMeublee(LocalDate dateAnnulation) {
+        if (dateAnnulation.isBefore(dateDebut)) {
+            return 0.0;
+        } else if (dateAnnulation.isAfter(dateDebut) && dateAnnulation.isBefore(dateFin)) {
+            long mois = ChronoUnit.MONTHS.between(dateAnnulation, dateFin);
+            return loyerMensuel * mois * 0.5;
         } else {
-            fraisAnnulation = loyerMensuel * 12;
+            return loyerMensuel * 12;
         }
-        return fraisAnnulation;
     }
 
-    private double calculerFraisAnnulationNonMeublee(Date dateAnnulation) {
-        if (dateAnnulation.before(dateDebut)) {
-            fraisAnnulation = (double) 0;
-        } else if (dateAnnulation.after(dateDebut) && dateAnnulation.before(dateFin)) {
-            long differenceAnnulation = dateFin.getTime() - dateAnnulation.getTime();
-            long mois = differenceAnnulation / (30 * 24 * 60 * 60 * 1000);
-            fraisAnnulation = loyerMensuel * mois * 0.30;
+    private double calculerFraisAnnulationNonMeublee(LocalDate dateAnnulation) {
+        if (dateAnnulation.isBefore(dateDebut)) {
+            return 0.0;
+        } else if (dateAnnulation.isAfter(dateDebut) && dateAnnulation.isBefore(dateFin)) {
+            long mois = ChronoUnit.MONTHS.between(dateAnnulation, dateFin);
+            return loyerMensuel * mois * 0.30;
         } else {
-            fraisAnnulation = loyerMensuel * 12;
+            return loyerMensuel * 12;
         }
-        return fraisAnnulation;
     }
 
-    public Contrats(Long id, String status, Double prixTotal, Double loyerMensuel, Date dateDebut,
-            Date dateFin, UserInfo userInfo) {
+    public Contrats(Long id,
+            StatusContrat status, Double prixTotal, Double loyerMensuel,
+            LocalDate dateDebut,
+            LocalDate dateFin, UserInfo userInfo) {
         this.id = id;
         this.status = status;
         this.loyerMensuel = loyerMensuel;
@@ -121,6 +127,17 @@ public class Contrats {
         this.dateDebut = dateDebut;
         this.dateFin = dateFin;
         this.userInfo = userInfo;
+    }
+
+    // ✅ Commission gestionnaire
+    public void calculerCommissionGestionnaire(double taux) {
+        if (loyerMensuel != null && dateDebut != null && dateFin != null) {
+            long dureeMois = ChronoUnit.MONTHS.between(dateDebut, dateFin);
+            double totalLoyer = loyerMensuel * dureeMois;
+            this.commission = totalLoyer * taux;
+        } else {
+            this.commission = 0.0;
+        }
     }
 
     public Long getId() {
@@ -131,14 +148,6 @@ public class Contrats {
         this.id = id;
     }
 
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
     public Double getLoyerMensuel() {
         return loyerMensuel;
     }
@@ -147,19 +156,19 @@ public class Contrats {
         this.loyerMensuel = loyerMensuel;
     }
 
-    public Date getDateDebut() {
+    public LocalDate getDateDebut() {
         return dateDebut;
     }
 
-    public void setDateDebut(Date dateDebut) {
+    public void setDateDebut(LocalDate dateDebut) {
         this.dateDebut = dateDebut;
     }
 
-    public Date getDateFin() {
+    public LocalDate getDateFin() {
         return dateFin;
     }
 
-    public void setDateFin(Date dateFin) {
+    public void setDateFin(LocalDate dateFin) {
         this.dateFin = dateFin;
     }
 
@@ -189,5 +198,29 @@ public class Contrats {
 
     public Double getFraisAnnulation() {
         return fraisAnnulation;
+    }
+
+    public UserInfo getGestionnaire() {
+        return gestionnaire;
+    }
+
+    public void setGestionnaire(UserInfo gestionnaire) {
+        this.gestionnaire = gestionnaire;
+    }
+
+    public Double getCommission() {
+        return commission;
+    }
+
+    public void setCommission(Double commission) {
+        this.commission = commission;
+    }
+
+    public StatusContrat getStatus() {
+        return status;
+    }
+
+    public void setStatus(StatusContrat status) {
+        this.status = status;
     }
 }
