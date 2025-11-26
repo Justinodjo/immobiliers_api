@@ -1,33 +1,66 @@
 package com.immoservice.immobiliers.controller;
 
-import com.immoservice.immobiliers.services.PdfGeneratorService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.*;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.io.IOException;
+import com.immoservice.immobiliers.services.PdfService;
+import com.immoservice.immobiliers.services.pdf.GestionPdfGenerator;
+import com.immoservice.immobiliers.services.pdf.MandatPdfGenerator;
 
 @RestController
 @RequestMapping("/api/pdf")
 public class PdfController {
 
     @Autowired
-    private PdfGeneratorService pdfGeneratorService;
+    private PdfService pdfGeneratorService;
 
     @GetMapping("/contrat")
     public ResponseEntity<byte[]> getContratPdf(
             @RequestParam String nomClient,
             @RequestParam String typeContrat,
-            @RequestParam String bien) throws IOException {
+            @RequestParam String bien) {
 
-        // Chemin absolu du logo (optionnel, sinon mettre null)
-        String logoPath = "src/main/resources/static/logo.png"; // Modifiez selon votre structure
+        // Chemin absolu du logo (optionnel)
+        String logoPath = "src/main/resources/static/logo.png";
 
-        byte[] pdfBytes = pdfGeneratorService.generateContratAsBytes(nomClient, typeContrat, bien, logoPath);
+        try {
+            // Préparer les données selon ton type de contrat
+            Object data;
+            switch (typeContrat.toUpperCase()) {
+                case "GESTION":
+                    GestionPdfGenerator.GestionData gestionData = new GestionPdfGenerator.GestionData();
+                    gestionData.nomProprietaire = nomClient;
+                    gestionData.adresseBien = bien;
+                    gestionData.conditions = "Conditions générales";
+                    data = gestionData;
+                    break;
+                case "MANDAT":
+                    MandatPdfGenerator.MandatData mandatData = new MandatPdfGenerator.MandatData();
+                    mandatData.nomSyndic = nomClient;
+                    mandatData.adresseBien = bien;
+                    mandatData.logoPath = logoPath;
+                    data = mandatData;
+                    break;
+                default:
+                    throw new IllegalArgumentException("Type de contrat inconnu : " + typeContrat);
+            }
 
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=contrat-" + nomClient + ".pdf")
-                .contentType(MediaType.APPLICATION_PDF)
-                .body(pdfBytes);
+            byte[] pdfBytes = pdfGeneratorService.generate(typeContrat.toUpperCase(), data);
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=contrat-" + nomClient + ".pdf")
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .body(pdfBytes);
+
+        } catch (Exception e) {
+            throw new RuntimeException("Erreur lors de la génération du PDF", e);
+        }
     }
+
 }

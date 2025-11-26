@@ -6,14 +6,22 @@ import org.springframework.stereotype.Service;
 
 import com.immoservice.immobiliers.entities.Arrondissement;
 import com.immoservice.immobiliers.repository.ArrondissementRepository;
+import com.immoservice.immobiliers.repository.CommuneRepository;
+import com.immoservice.immobiliers.entities.Commune;
 
 @Service
 public class ArrondissementService {
     private ArrondissementRepository arrondissementRepository;
+    private CommuneRepository communeRepository;
 
-    public ArrondissementService(ArrondissementRepository arrondissementRepository) {
-        this.arrondissementRepository = arrondissementRepository;
-    }
+   
+public ArrondissementService(
+    ArrondissementRepository arrondissementRepository,
+    CommuneRepository communeRepository
+) {
+    this.arrondissementRepository = arrondissementRepository;
+    this.communeRepository = communeRepository;
+}
 
     // Afficher la liste de tous les departements de la base de données
     public List<Arrondissement> getAllArrondissement() {
@@ -41,7 +49,12 @@ public class ArrondissementService {
     // return arrondissementRepository.findByCommune_IdCommune(idCommune);
     // }
 
-    public List<Arrondissement> getArrondissementsByNomCommunes(String libelle) {
-        return arrondissementRepository.findByCommune_Libelle(libelle);
-    }
+    public List<Arrondissement> getArrondissementsByCommuneId(Long idCommune) {
+    Commune commune = communeRepository.findById(idCommune)
+        .orElseThrow(() -> new RuntimeException("Commune non trouvée avec ID: " + idCommune));
+    return arrondissementRepository.findByCommune(commune);
+}
+    // public List<Arrondissement> getArrondissementsByNomCommunes(String libelle) {
+    //     return arrondissementRepository.findByCommune_Libelle(libelle);
+    // }
 }

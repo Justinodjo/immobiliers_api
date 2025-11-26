@@ -9,17 +9,21 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.annotation.LastModifiedDate;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import com.immoservice.immobiliers.config.AuditLogListener;
 import com.immoservice.immobiliers.enums.TypeUnite;
+import com.immoservice.immobiliers.enums.UniteSurface;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -30,6 +34,8 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 
+@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
+@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
 @Entity
 @EntityListeners(AuditLogListener.class)
 public class BiensImmobiliers extends BaseEntity {
@@ -38,12 +44,14 @@ public class BiensImmobiliers extends BaseEntity {
     private Long id;
     private String nom;
     private String adresse;
-    @ManyToOne
+    @ManyToOne(cascade = { CascadeType.MERGE, CascadeType.REFRESH })
     private Departement departement;
-    @ManyToOne
+    @ManyToOne(cascade = { CascadeType.MERGE, CascadeType.REFRESH })
     private Commune commune;
-    @ManyToOne
+    @ManyToOne(cascade = { CascadeType.MERGE, CascadeType.REFRESH })
     private Arrondissement arrondissement;
+    @ManyToOne(cascade = { CascadeType.MERGE, CascadeType.REFRESH })
+    private Quartier quartier;
     private Double latitude;
     private Double longitude;
     private Boolean status; // actif, inactif
@@ -59,18 +67,24 @@ public class BiensImmobiliers extends BaseEntity {
     private TypeUnite typeUnite;
     @Column(columnDefinition = "TEXT")
     private String description;
+    @Enumerated(EnumType.STRING)
+    private UniteSurface uniteSurface;
     @ManyToOne
     @JoinColumn(name = "typeBiens_id")
     private TypeBiensImmobiliere typeBiensImmobiliere;
 
-    @ManyToOne
-    @JoinColumn(name = "details_biens_immobiliers")
-    @JsonManagedReference("biensImmobiliers-detailsBiensImmobiliers")
-    private DetailsBiensImmobiliers detailsBiensImmobiliers;
+    // Dans BiensImmobiliers.java
+    @OneToMany(mappedBy = "biensImmobiliers", cascade = CascadeType.ALL, orphanRemoval = true)
+    // @JsonManagedReference("biensImmobiliers-detailsBiensImmobiliers")
+    private List<DetailsBiensImmobiliers> detailsBiensImmobiliers = new ArrayList<>(); // Liste au lieu d'un seul
 
     @ManyToOne(cascade = { CascadeType.MERGE, CascadeType.REFRESH })
     @JoinColumn(name = "user_info_id") // Clé étrangère pour lier UserInfo à Reservation
     private UserInfo userInfo;
+
+    @ManyToOne(cascade = { CascadeType.MERGE, CascadeType.REFRESH })
+    @JoinColumn(name = "gestionnaire_id")
+    private UserInfo gestionnaire;
 
     @ManyToOne(cascade = { CascadeType.MERGE, CascadeType.REFRESH })
     private Fichier fichier;
@@ -89,8 +103,8 @@ public class BiensImmobiliers extends BaseEntity {
     private Equipements equipements;
 
     // 🔹 Relation inverse pour éviter boucle JSON
-    @ManyToMany(mappedBy = "biensImmobiliers")
-    @JsonBackReference
+    @ManyToMany(mappedBy = "biensImmobiliers", fetch = FetchType.LAZY)
+    // @JsonBackReference(value = "contrats-biensImmobiliers")
     @JsonIgnore
     private List<Contrats> contrats = new ArrayList<>();
     @CreatedDate
@@ -98,7 +112,7 @@ public class BiensImmobiliers extends BaseEntity {
     private Date createdAt;
 
     @LastModifiedBy
-    @ManyToOne(cascade = { CascadeType.PERSIST, CascadeType.MERGE })
+    @ManyToOne(fetch = FetchType.LAZY, cascade = { CascadeType.PERSIST, CascadeType.MERGE })
     @JoinColumn(name = "updated_by_id") // Clé étrangère dans la table produits
     @JsonIgnore
     private UserInfo updatedBy;
@@ -141,6 +155,16 @@ public class BiensImmobiliers extends BaseEntity {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public void addDetail(DetailsBiensImmobiliers detail) {
+        detailsBiensImmobiliers.add(detail);
+        detail.setBiensImmobiliers(this);
+    }
+
+    public void removeDetail(DetailsBiensImmobiliers detail) {
+        detailsBiensImmobiliers.remove(detail);
+        detail.setBiensImmobiliers(null);
     }
 
     public String getNom() {
@@ -215,6 +239,14 @@ public class BiensImmobiliers extends BaseEntity {
         this.typeUnite = typeUnite;
     }
 
+    public UniteSurface getUniteSurface() {
+        return uniteSurface;
+    }
+
+    public void setUniteSurface(UniteSurface uniteSurface) {
+        this.uniteSurface = uniteSurface;
+    }
+
     public Fichier getFichier() {
         return fichier;
     }
@@ -237,6 +269,14 @@ public class BiensImmobiliers extends BaseEntity {
 
     public void setStatus(Boolean status) {
         this.status = status;
+    }
+
+    public UserInfo getGestionnaire() {
+        return gestionnaire;
+    }
+
+    public void setGestionnaire(UserInfo gestionnaire) {
+        this.gestionnaire = gestionnaire;
     }
 
     public String getDescription() {
@@ -307,14 +347,6 @@ public class BiensImmobiliers extends BaseEntity {
         this.superficie = superficie;
     }
 
-    public DetailsBiensImmobiliers getDetailsBiensImmobiliers() {
-        return detailsBiensImmobiliers;
-    }
-
-    public void setDetailsBiensImmobiliers(DetailsBiensImmobiliers detailsBiensImmobiliers) {
-        this.detailsBiensImmobiliers = detailsBiensImmobiliers;
-    }
-
     public Double getNote() {
         return note;
     }
@@ -362,4 +394,21 @@ public class BiensImmobiliers extends BaseEntity {
     public void setContrats(List<Contrats> contrats) {
         this.contrats = contrats;
     }
+
+    public List<DetailsBiensImmobiliers> getDetailsBiensImmobiliers() {
+        return detailsBiensImmobiliers;
+    }
+
+    public void setDetailsBiensImmobiliers(List<DetailsBiensImmobiliers> detailsBiensImmobiliers) {
+        this.detailsBiensImmobiliers = detailsBiensImmobiliers;
+    }
+
+    public Quartier getQuartier() {
+        return quartier;
+    }
+
+    public void setQuartier(Quartier quartier) {
+        this.quartier = quartier;
+    }
+
 }

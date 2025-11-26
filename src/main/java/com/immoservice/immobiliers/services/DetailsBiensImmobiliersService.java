@@ -5,10 +5,13 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.immoservice.immobiliers.entities.BiensImmobiliers;
 import com.immoservice.immobiliers.entities.DetailsBiensImmobiliers;
 import com.immoservice.immobiliers.entities.Fichier;
+import com.immoservice.immobiliers.repository.BiensImmobiliersRepository;
 import com.immoservice.immobiliers.repository.DetailsBiensImmobiliersRepository;
 import com.immoservice.immobiliers.repository.FichierRepository;
 
@@ -16,11 +19,15 @@ import com.immoservice.immobiliers.repository.FichierRepository;
 public class DetailsBiensImmobiliersService {
     @Autowired
     private DetailsBiensImmobiliersRepository detailsBiensImmobiliersRepository;
+
+    @Autowired
+    private BiensImmobiliersRepository biensImmobiliersRepository;
+
     @Autowired
     private FichierRepository fichierRepository;
 
     @Transactional
-    public DetailsBiensImmobiliers save(DetailsBiensImmobiliers detailsBiensImmobiliers) {
+    public DetailsBiensImmobiliers save(DetailsBiensImmobiliers detailsBiensImmobiliers, Long bienId) {
         // Vérifier si le fichier principal existe en base
         if (detailsBiensImmobiliers.getFichier() != null && detailsBiensImmobiliers.getFichier().getId() != null) {
             detailsBiensImmobiliers.setFichier(fichierRepository.findById(detailsBiensImmobiliers.getFichier().getId())
@@ -36,6 +43,12 @@ public class DetailsBiensImmobiliersService {
 
             detailsBiensImmobiliers.setFichiers(fichiersAttached);
         }
+
+        // Lier le détail au bien
+        BiensImmobiliers bien = biensImmobiliersRepository.findById(bienId)
+                .orElseThrow(() -> new RuntimeException("Bien non trouvé"));
+        detailsBiensImmobiliers.setBiensImmobiliers(bien);
+        bien.getDetailsBiensImmobiliers().add(detailsBiensImmobiliers);
         return detailsBiensImmobiliersRepository.save(detailsBiensImmobiliers);
     }
 

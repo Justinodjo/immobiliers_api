@@ -5,13 +5,16 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import com.immoservice.immobiliers.entities.Quartier;
 import com.immoservice.immobiliers.repository.QuartierRepository;
-
+import com.immoservice.immobiliers.repository.ArrondissementRepository;
+import com.immoservice.immobiliers.entities.Arrondissement;
 @Service
 public class QuartierService {
-    private QuartierRepository quartierRepository;
+       private final QuartierRepository quartierRepository;
+    private final ArrondissementRepository arrondissementRepository;
 
-    public QuartierService(QuartierRepository quartierRepository) {
+    public QuartierService(QuartierRepository quartierRepository, ArrondissementRepository arrondissementRepository) {
         this.quartierRepository = quartierRepository;
+        this.arrondissementRepository = arrondissementRepository;
     }
 
     // Afficher la liste de tous les departements de la base de données
@@ -34,4 +37,12 @@ public class QuartierService {
     public void deleteQuartier(Long idQartier) {
         quartierRepository.deleteById(idQartier);
     }
+public List<Quartier> getQuartiersByArrondissementId(Long idArrondissement) {
+    Arrondissement arrondissement = arrondissementRepository.findById(idArrondissement)
+        .orElseThrow(() -> new RuntimeException("Arrondissement non trouvé avec ID: " + idArrondissement));
+    
+    return quartierRepository.findByArrondissement(arrondissement);
+}
+
+
 }

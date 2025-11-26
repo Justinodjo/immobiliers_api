@@ -37,6 +37,7 @@ public class Intervention extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String typeIntervention;
+    @Column(columnDefinition = "TEXT")
     private String description;
     private BigDecimal estimationCout;
     private BigDecimal coutReel;
@@ -64,6 +65,11 @@ public class Intervention extends BaseEntity {
 
     @OneToMany(mappedBy = "intervention", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Documents> documents;
+
+    @ManyToOne
+@JoinColumn(name = "details_bien_id")
+private DetailsBiensImmobiliers detailsBiensImmobiliers;
+
 
     @CreatedBy
     @ManyToOne(cascade = { CascadeType.PERSIST, CascadeType.MERGE })
@@ -150,13 +156,19 @@ public class Intervention extends BaseEntity {
     public void setStatut(StatutIntervention statut) {
         this.statut = statut;
     }
-
-    public BiensImmobiliers getBiensImmobilers() {
+   public BiensImmobiliers getBiensImmobilers() {
         return biensImmobilers;
     }
 
     public void setBiensImmobilers(BiensImmobiliers biensImmobilers) {
         this.biensImmobilers = biensImmobilers;
+    }
+    public DetailsBiensImmobiliers getDetailsBiensImmobiliers() {
+        return detailsBiensImmobiliers;
+    }
+
+    public void setDetailsBiensImmobiliers(DetailsBiensImmobiliers detailsBiensImmobiliers) {
+        this.detailsBiensImmobiliers = detailsBiensImmobiliers;
     }
 
     public BigDecimal getEstimationCout() {

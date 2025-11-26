@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Annulation de contrat - ImmoService</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+        
+        .header {
+            background: linear-gradient(45deg, #e74c3c, #f39c12);
+            padding: 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M20,20 L80,20 L80,80 L20,80 Z" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="2"/><circle cx="30" cy="30" r="3" fill="rgba(255,255,255,0.1)"/><circle cx="70" cy="70" r="2" fill="rgba(255,255,255,0.1)"/></svg>');
+            animation: float 25s infinite linear;
+        }
+        
+        @keyframes float {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        
+        .logo {
+            position: relative;
+            z-index: 2;
+            font-size: 32px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+        }
+        
+        .header-subtitle {
+            position: relative;
+            z-index: 2;
+            color: rgba(255,255,255,0.9);
+            font-size: 16px;
+            font-weight: 300;
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .alert-icon {
+            display: inline-block;
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            border-radius: 50%;
+            margin-bottom: 25px;
+            position: relative;
+            box-shadow: 0 8px 20px rgba(231, 76, 60, 0.3);
+        }
+        
+        .alert-icon::before {
+            content: '✕';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 35px;
+            font-weight: bold;
+        }
+        
+        .title {
+            color: #2c3e50;
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .greeting {
+            font-size: 18px;
+            color: #34495e;
+            margin-bottom: 25px;
+        }
+        
+        .message-content {
+            background: #fff5f5;
+            padding: 25px;
+            border-radius: 15px;
+            border-left: 4px solid #e74c3c;
+            margin: 25px 0;
+        }
+        
+        .contract-details {
+            background: white;
+            border: 2px solid #ecf0f1;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 25px 0;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+        
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        
+        .detail-label {
+            font-weight: 600;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+        }
+        
+        .detail-label::before {
+            content: '🏠';
+            margin-right: 8px;
+            font-size: 16px;
+        }
+        
+        .detail-label:nth-child(1)::before { content: '📋'; }
+        .detail-row:nth-child(2) .detail-label::before { content: '📅'; }
+        .detail-row:nth-child(3) .detail-label::before { content: '❌'; }
+        
+        .detail-value {
+            color: #7f8c8d;
+            font-weight: 500;
+        }
+        
+        .status-badge {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            color: white;
+            padding: 8px 18px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 600;
+            box-shadow: 0 4px 10px rgba(231, 76, 60, 0.3);
+        }
+        
+        .important-info {
+            background: #fef9e7;
+            border: 2px solid #f1c40f;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 25px 0;
+        }
+        
+        .important-info h3 {
+            color: #f39c12;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .important-info h3::before {
+            content: '⚠️';
+            margin-right: 10px;
+        }
+        
+        .next-steps {
+            background: #eaf4fd;
+            padding: 25px;
+            border-radius: 12px;
+            border-left: 4px solid #3498db;
+            margin: 25px 0;
+        }
+        
+        .next-steps h3 {
+            color: #2980b9;
+            margin-bottom: 15px;
+        }
+        
+        .step-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .step-list li {
+            padding: 10px 0;
+            padding-left: 30px;
+            position: relative;
+            color: #34495e;
+            font-size: 15px;
+        }
+        
+        .step-list li::before {
+            content: '▶️';
+            position: absolute;
+            left: 0;
+            font-size: 14px;
+        }
+        
+        .contact-info {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 30px 0;
+            text-align: center;
+        }
+        
+        .contact-info h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+        
+        .contact-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        
+        .contact-button {
+            display: inline-block;
+            padding: 12px 24px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        
+        .contact-button.email {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+        }
+        
+        .contact-button.phone {
+            background: linear-gradient(45deg, #27ae60, #229954);
+            color: white;
+        }
+        
+        .contact-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+        }
+        
+        .footer {
+            background: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 35px;
+        }
+        
+        .footer-content {
+            font-size: 14px;
+            line-height: 1.8;
+        }
+        
+        .footer-links {
+            margin: 25px 0;
+        }
+        
+        .footer-links a {
+            color: #3498db;
+            text-decoration: none;
+            margin: 0 15px;
+            transition: color 0.3s ease;
+        }
+        
+        .footer-links a:hover {
+            color: #5dade2;
+        }
+        
+        .social-icons {
+            margin: 25px 0;
+        }
+        
+        .social-icon {
+            display: inline-block;
+            width: 45px;
+            height: 45px;
+            background: #34495e;
+            border-radius: 50%;
+            margin: 0 10px;
+            line-height: 45px;
+            text-decoration: none;
+            color: white;
+            transition: all 0.3s ease;
+            font-size: 18px;
+        }
+        
+        .social-icon:hover {
+            background: #3498db;
+            transform: translateY(-3px);
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                border-radius: 0;
+                margin: 0;
+            }
+            
+            .content {
+                padding: 25px;
+            }
+            
+            .detail-row {
+                flex-direction: column;
+                text-align: center;
+                gap: 8px;
+            }
+            
+            .contact-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">IMMOSERVICE</div>
+            <div class="header-subtitle">Votre partenaire immobilier de confiance</div>
+        </div>
+        
+        <div class="content">
+            <div style="text-align: center;">
+                <div class="alert-icon"></div>
+            </div>
+            
+            <h1 class="title">Annulation de contrat immobilier</h1>
+            
+            <div class="greeting">
+                Bonjour <strong th:text="${nomUtilisateur}">Nom Utilisateur</strong>,
+            </div>
+            
+            <div class="message-content">
+                <p style="font-size: 16px; color: #34495e; margin-bottom: 15px;">
+                    Nous vous confirmons que votre <strong>contrat immobilier</strong> a été <strong style="color: #e74c3c;">annulé</strong> conformément à votre demande.
+                </p>
+            </div>
+            
+            <div class="contract-details">
+                <div class="detail-row">
+                    <span class="detail-label">Numéro du contrat :</span>
+                    <span class="detail-value"><strong th:text="${idContrat}">#12345</strong></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Date d'annulation :</span>
+                    <span class="detail-value" th:text="${dateAnnulation}">01/01/2024</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Statut actuel :</span>
+                    <span class="status-badge">ANNULÉ</span>
+                </div>
+            </div>
+            
+            <div class="important-info">
+                <h3>Informations importantes</h3>
+                <p style="color: #7f8c8d; line-height: 1.6;">
+                    Cette annulation prend effet immédiatement. Tous les services associés à ce contrat ont été suspendus. 
+                    Si des frais d'annulation sont applicables, ils vous seront communiqués séparément.
+                </p>
+            </div>
+            
+            <div class="next-steps">
+                <h3>Prochaines étapes</h3>
+                <ul class="step-list">
+                    <li>Restitution des clés et état des lieux de sortie</li>
+                    <li>Calcul et restitution du dépôt de garantie sous 30 jours</li>
+                    <li>Arrêt des prélèvements automatiques</li>
+                    <li>Remise des documents de fin de contrat</li>
+                    <li>Résiliation des assurances liées au bien</li>
+                </ul>
+            </div>
+            
+            <div class="contact-info">
+                <h3>Besoin d'assistance ?</h3>
+                <p style="color: #7f8c8d; margin-bottom: 20px;">
+                    Notre équipe reste à votre disposition pour toute question concernant cette annulation
+                </p>
+                
+                <div class="contact-buttons">
+                    <a href="mailto:support@immoservice.com" class="contact-button email">
+                        📧 Email Support
+                    </a>
+                    <a href="tel:+33123456789" class="contact-button phone">
+                        📞 Nous appeler
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <div class="footer-content">
+                <p><strong>ImmoService</strong> - Excellence en gestion immobilière</p>
+                
+                <div class="footer-links">
+                    <a href="#">Nos services</a>
+                    <a href="#">Conditions générales</a>
+                    <a href="#">Politique de confidentialité</a>
+                    <a href="#">Contact</a>
+                </div>
+                
+                <div class="social-icons">
+                    <a href="#" class="social-icon">f</a>
+                    <a href="#" class="social-icon">t</a>
+                    <a href="#" class="social-icon">in</a>
+                    <a href="#" class="social-icon">📧</a>
+                </div>
+                
+                <p style="font-size: 12px; color: #95a5a6; margin-top: 25px;">
+                    © <span th:text="${annee}">2024</span> ImmoService. Tous droits réservés.<br>
+                    123 Avenue de l'Immobilier, 75001 Paris - RCS Paris 123 456 789<br>
+                    Email automatique - Merci de ne pas répondre directement à ce message.
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

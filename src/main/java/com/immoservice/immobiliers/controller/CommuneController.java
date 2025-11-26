@@ -81,10 +81,14 @@ public class CommuneController {
     // }
 
     // Récupérer les communes par nom de département
-    @GetMapping("/departement/{libelle}")
-    public ResponseEntity<List<Commune>> getCommunesByNomDepartement(@PathVariable String libelle) {
-        List<Commune> communes = communeService.getCommunesByNomDepartement(libelle);
-        return ResponseEntity.ok(communes);
-    }
+    // @GetMapping("/departement/{libelle}")
+    // public ResponseEntity<List<Commune>> getCommunesByNomDepartement(@PathVariable String libelle) {
+    //     List<Commune> communes = communeService.getCommunesByNomDepartement(libelle);
+    //     return ResponseEntity.ok(communes);
+    // }
 
+    @GetMapping("/departement/{idDepartement}")
+    public List<Commune> getCommunesByDepartement(@PathVariable("idDepartement") Long departementId) {
+        return communeService.getCommunesByDepartement(departementId);
+    }
 }

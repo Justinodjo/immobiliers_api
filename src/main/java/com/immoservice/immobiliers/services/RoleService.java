@@ -38,4 +38,9 @@ public class RoleService {
     public void deleteRole(Long idRole) {
         roleRepository.deleteById(idRole);
     }
+
+    public Role findByName(String nomRole) {
+        return roleRepository.findByNomRole(nomRole)
+                .orElseThrow(() -> new IllegalArgumentException("Rôle introuvable : " + nomRole));
+    }
 }

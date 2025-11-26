@@ -20,7 +20,7 @@ public class UserInfoDTO {
     private String numero;
     private String adresse;
     private Date dateNaissance;
-
+    private Long fichier;
     @NotBlank
     private String password;
 
@@ -139,6 +139,20 @@ public class UserInfoDTO {
      */
     public void setRoles(List<String> roles) {
         this.roles = roles;
+    }
+
+    /**
+     * @return Long return the fichier
+     */
+    public Long getFichier() {
+        return fichier;
+    }
+
+    /**
+     * @param fichier the fichier to set
+     */
+    public void setFichier(Long fichier) {
+        this.fichier = fichier;
     }
 
 }

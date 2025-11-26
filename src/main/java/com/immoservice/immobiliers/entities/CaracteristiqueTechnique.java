@@ -1,14 +1,23 @@
 package com.immoservice.immobiliers.entities;
 
-import jakarta.persistence.*;
-
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.Objects;
-
-import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
+import com.fasterxml.jackson.annotation.JsonBackReference;
+// import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.immoservice.immobiliers.enums.TypeCaracteristique;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+ @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
 @Entity
 public class CaracteristiqueTechnique implements Serializable {
     @Serial
@@ -18,13 +27,14 @@ public class CaracteristiqueTechnique implements Serializable {
     private Long id;
 
     private Boolean possede = false;
-
+    private String libelle;
     @Enumerated(EnumType.STRING)
     private TypeCaracteristique typeCaracteristique;
 
     @ManyToOne
     @JoinColumn(name = "sous_details_id")
-    @JsonManagedReference("caracteristiqueTechnique-sousDetailsBiensImmobiliers")
+    // @JsonManagedReference("caracteristiqueTechnique-sousDetailsBiensImmobiliers")
+    // @JsonBackReference("caracteristiqueTechnique-sousDetailsBiensImmobiliers")
     private SousDetailsBiensImmobiliers sousDetailsBiensImmobiliers;
 
     public Long getId() {
@@ -81,5 +91,13 @@ public class CaracteristiqueTechnique implements Serializable {
 
     public void setSousDetailsBiensImmobiliers(SousDetailsBiensImmobiliers sousDetailsBiensImmobiliers) {
         this.sousDetailsBiensImmobiliers = sousDetailsBiensImmobiliers;
+    }
+
+    public String getLibelle() {
+        return libelle;
+    }
+
+    public void setLibelle(String libelle) {
+        this.libelle = libelle;
     }
 }

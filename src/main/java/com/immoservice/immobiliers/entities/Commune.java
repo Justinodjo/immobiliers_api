@@ -19,7 +19,7 @@ public class Commune {
     
     private String libelle;
     private Date version;
-    @ManyToOne(cascade={PERSIST, MERGE})
+    @ManyToOne
     @JoinColumn(name= "idDepartement")
     private Departement departement;
     

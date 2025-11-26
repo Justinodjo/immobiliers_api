@@ -1,15 +1,17 @@
 package com.immoservice.immobiliers.config;
 
+import java.io.IOException;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+
 import com.immoservice.immobiliers.entities.UserInfo;
 import com.immoservice.immobiliers.services.AccessLogService;
 import com.immoservice.immobiliers.services.UserInfoDetails;
 
-import java.io.IOException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -49,6 +51,24 @@ public class LoggingFilter extends OncePerRequestFilter {
 
         // Stocker dans la BDD
         accessLogService.saveLog(method, uri, contentType, ipAddress, status, utilisateur);
+    }
+
+    // 👉 Cette méthode permet d’exclure certaines routes du logging
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getServletPath();
+
+        // Exclure Swagger et OpenAPI
+        return path.startsWith("/swagger-ui") ||
+                path.startsWith("/v3/api-docs") ||
+                path.startsWith("/swagger-resources") ||
+                path.startsWith("/configuration/ui") ||
+                path.startsWith("/configuration/security") ||
+                path.startsWith("/webjars/") ||
+                path.equals("/swagger-ui.html") ||
+                // Autres exclusions
+                path.startsWith("/actuator") ||
+                path.equals("/favicon.ico");
     }
 
     private String getClientIp(HttpServletRequest request) {

@@ -1,17 +1,28 @@
 package com.immoservice.immobiliers.controller;
 
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.immoservice.immobiliers.entities.Message;
 import com.immoservice.immobiliers.services.MessageService;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/messages")
 public class MessageController {
 
     private final MessageService messageService;
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
 
     public MessageController(MessageService messageService) {
         this.messageService = messageService;
@@ -24,6 +35,11 @@ public class MessageController {
             @RequestParam Integer expediteurId,
             @RequestParam Integer destinataireId) {
         Message message = messageService.envoyerMessage(contenu, expediteurId, destinataireId);
+        // 2. Notifier en WebSocket le destinataire
+        messagingTemplate.convertAndSendToUser(
+                destinataireId.toString(),
+                "/queue/notifications",
+                message);
         return ResponseEntity.ok(message);
     }
 

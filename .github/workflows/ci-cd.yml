@@ -1,56 +1,71 @@
-# name: CI/CD Pipeline
+name: CI/CD Pipeline
 
-# on:
-#   push:
-#     branches:
-#       - main    # Ou master, ou la branche que vous voulez suivre
-#   pull_request:
-#     branches:
-#       - main
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main", "develop" ]
 
-# jobs:
-#   build-test:
-#     runs-on: ubuntu-latest
+jobs:
+  build:
+    name: Build & Test
+    runs-on: ubuntu-latest
 
-#     steps:
-#       - name: Checkout code
-#         uses: actions/checkout@v3
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-#       - name: Set up JDK 17
-#         uses: actions/setup-java@v3
-#         with:
-#           java-version: '17'
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
 
-#       - name: Build with Maven
-#         run: mvn clean install -DskipTests=false
+      - name: Build with Maven
+        run: mvn clean package -B
 
-#       - name: Run tests
-#         run: mvn test
+      - name: Run tests
+        run: mvn test
 
-#   deploy:
-#     needs: build-test
-#     runs-on: ubuntu-latest
-#     if: github.ref == 'refs/heads/main'
+      # (Optionnel) Analyse SonarQube
+      # - name: SonarQube analysis
+      #   run: mvn sonar:sonar -Dsonar.projectKey=my-app -Dsonar.host.url=${{ secrets.SONAR_HOST }} -Dsonar.login=${{ secrets.SONAR_TOKEN }}
 
-#     steps:
-#       - name: Checkout code
-#         uses: actions/checkout@v3
+  docker:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+    needs: build
 
-#       - name: Set up JDK 17
-#         uses: actions/setup-java@v3
-#         with:
-#           java-version: '17'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-#       - name: Build package
-#         run: mvn clean package -DskipTests
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-#       - name: Deploy to server via SSH
-#         uses: appleboy/ssh-action@v0.1.7
-#         with:
-#           host: ${{ secrets.SERVER_HOST }}
-#           username: ${{ secrets.SERVER_USER }}
-#           key: ${{ secrets.SERVER_SSH_KEY }}
-#           script: |
-#             # Commandes pour déployer votre JAR (adapter selon serveur)
-#             pkill -f 'java -jar' || true
-#             nohup java -jar /path/to/app.jar > /dev/null 2>&1 &
+      - name: Build Docker image
+        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/my-app:latest .
+
+      - name: Push Docker image
+        run: docker push ${{ secrets.DOCKER_USERNAME }}/my-app:latest
+
+  deploy:
+    name: Deploy to Server
+    runs-on: ubuntu-latest
+    needs: docker
+
+    steps:
+      - name: SSH Deploy
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            docker pull ${{ secrets.DOCKER_USERNAME }}/my-app:latest
+            docker stop my-app || true
+            docker rm my-app || true
+            docker run -d -p 8080:8080 --name my-app ${{ secrets.DOCKER_USERNAME }}/my-app:latest

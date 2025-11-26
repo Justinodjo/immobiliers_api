@@ -1,8 +1,10 @@
 package com.immoservice.immobiliers.services;
 
 import java.util.List;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import com.immoservice.immobiliers.entities.Departement;
 import com.immoservice.immobiliers.entities.Commune;
 import com.immoservice.immobiliers.repository.CommuneRepository;
 import com.immoservice.immobiliers.repository.DepartementRepository;
@@ -12,7 +14,7 @@ import com.immoservice.immobiliers.repository.DepartementRepository;
  */
 @Service
 public class CommuneService {
-
+    private static final Logger logger = LoggerFactory.getLogger(CommuneService.class);
     private final CommuneRepository communeRepository;
     private final DepartementRepository departementRepository;
 
@@ -42,10 +44,11 @@ public class CommuneService {
         communeRepository.deleteById(idCommune);
     }
 
-    // public List<Commune> getCommunesByDepartementId(Long idDepartement) {
-    // // Requête pour récupérer les communes par département (via repository)
-    // return communeRepository.findByDepartement_IdDepartement(idDepartement);
-    // }
+   public List<Commune> getCommunesByDepartement(Long departementId) {
+    Departement departement = departementRepository.findById(departementId)
+            .orElseThrow(() -> new RuntimeException("Département non trouvé avec ID: " + departementId));
+    return communeRepository.findByDepartement(departement);
+}
 
     // Récupérer les communes par nom de département
     public List<Commune> getCommunesByNomDepartement(String libelle) {

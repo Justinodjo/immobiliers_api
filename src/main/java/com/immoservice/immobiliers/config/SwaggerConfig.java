@@ -26,7 +26,7 @@ public class SwaggerConfig {
         @Bean
         OpenAPI customOpenAPI() {
                 return new OpenAPI()
-                                .info(new Info().title("Projet IMMOSERVICES").version("API 0.0.1"))
+                                .info(new Info().title("Hweon - Ton espace, ta liberté. Vivez où vous vous sentez chez vous.").version("API 0.0.1"))
                                 .addSecurityItem(new SecurityRequirement().addList("bearerAuth"))
                                 .components(
                                                 new Components()

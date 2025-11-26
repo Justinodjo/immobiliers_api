@@ -2,10 +2,11 @@ package com.immoservice.immobiliers.entities;
 
 import java.util.Date;
 
-import jakarta.persistence.CascadeType;
+import org.hibernate.annotations.CreationTimestamp;
 
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-// import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
@@ -23,7 +24,16 @@ public class Notification {
     @Enumerated(EnumType.STRING)
     private TypeNotifications typeNotifications;
     private String message;
+    @CreationTimestamp // 🕒 Géré automatiquement par Hibernate
+    @Column(updatable = false)
     private Date dateNotification;
+    // 🔹 Priorité : HIGH / MEDIUM / LOW
+    private String priorite;
+    // 🔹 Titre affiché dans l'UI (optionnel)
+    private String titre;
+    // 🔹 Contexte : ex "BIEN #120", "CONTRAT", "SECURITE"
+    private String contexte;
+    @Column(nullable = false)
     private boolean notificationsLu;
 
     @ManyToOne(cascade = { CascadeType.PERSIST, CascadeType.MERGE })
@@ -36,6 +46,30 @@ public class Notification {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public String getTitre() {
+        return titre;
+    }
+
+    public void setTitre(String titre) {
+        this.titre = titre;
+    }
+
+    public String getPriorite() {
+        return priorite;
+    }
+
+    public void setPriorite(String priorite) {
+        this.priorite = priorite;
+    }
+
+    public String getContexte() {
+        return contexte;
+    }
+
+    public void setContexte(String contexte) {
+        this.contexte = contexte;
     }
 
     public TypeNotifications getTypeNotifications() {
