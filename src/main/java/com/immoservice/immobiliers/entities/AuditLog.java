@@ -1,6 +1,6 @@
 package com.immoservice.immobiliers.entities;
 
-import java.sql.Date;
+import java.time.LocalDateTime;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -14,7 +14,7 @@ public class AuditLog {
     private Long id;
     private String entityType;
     private Long entityId;
-    private Date modificationDate;
+    private LocalDateTime modificationDate;
     private String modificationType;
     private String modifiedBy;
 
@@ -42,11 +42,11 @@ public class AuditLog {
         this.entityId = entityId;
     }
 
-    public Date getModificationDate() {
+    public LocalDateTime getModificationDate() {
         return modificationDate;
     }
 
-    public void setModificationDate(Date modificationDate) {
+    public void setModificationDate(LocalDateTime modificationDate) {
         this.modificationDate = modificationDate;
     }
 

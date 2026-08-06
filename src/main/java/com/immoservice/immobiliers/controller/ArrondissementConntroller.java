@@ -71,9 +71,14 @@ public class ArrondissementConntroller {
     // return arrondissementService.getArrondissementsByCommuneId(idCommune);
     // }
 
-    @GetMapping("/commune/{libelle}")
-    public ResponseEntity<List<Arrondissement>> getCommunesByNomArrondissement(@PathVariable String libelle) {
-        List<Arrondissement> arrondissements = arrondissementService.getArrondissementsByNomCommunes(libelle);
-        return ResponseEntity.ok(arrondissements);
+    @GetMapping("/commune/{idCommune}")
+    public List<Arrondissement> getArrondissementsByCommuneId(@PathVariable Long idCommune) {
+        return arrondissementService.getArrondissementsByCommuneId(idCommune);
     }
+
+    // @GetMapping("/commune/{libelle}")
+    // public ResponseEntity<List<Arrondissement>> getCommunesByNomArrondissement(@PathVariable String libelle) {
+    //     List<Arrondissement> arrondissements = arrondissementService.getArrondissementsByNomCommunes(libelle);
+    //     return ResponseEntity.ok(arrondissements);
+    // }
 }

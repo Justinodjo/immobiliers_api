@@ -11,20 +11,25 @@ import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Primary;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.immoservice.immobiliers.dto.GestionnaireDTO;
 import com.immoservice.immobiliers.dto.UserInfoBadges;
 import com.immoservice.immobiliers.dto.UserInfoDTO;
 import com.immoservice.immobiliers.entities.AuthRequest;
 import com.immoservice.immobiliers.entities.Contrats;
+import com.immoservice.immobiliers.entities.CustomOAuth2User;
 import com.immoservice.immobiliers.entities.PasswordResetToken;
 import com.immoservice.immobiliers.entities.Permission;
 import com.immoservice.immobiliers.entities.Role;
@@ -34,6 +39,7 @@ import com.immoservice.immobiliers.exceptions.RoleNotFoundException;
 import com.immoservice.immobiliers.exceptions.UserAlreadyExistsException;
 import com.immoservice.immobiliers.repository.BiensImmobiliersRepository;
 import com.immoservice.immobiliers.repository.ContratsRepository;
+import com.immoservice.immobiliers.repository.FichierRepository;
 import com.immoservice.immobiliers.repository.PasswordResetTokenRepository;
 import com.immoservice.immobiliers.repository.RoleRepository;
 import com.immoservice.immobiliers.repository.UserInfoRepository;
@@ -42,6 +48,7 @@ import com.immoservice.immobiliers.response.AuthResponse;
 import jakarta.validation.Valid;
 
 @Service
+@Primary
 public class UserInfoService implements UserDetailsService {
     private static final Logger logger = LoggerFactory.getLogger(UserInfoService.class);
     @Autowired
@@ -71,6 +78,13 @@ public class UserInfoService implements UserDetailsService {
     @Autowired
     private ContratsRepository contratsRepository;
 
+    @Autowired
+    private AccessLogService accessLogService;
+    @Autowired
+    private FichierRepository fichierRepository;
+    @Autowired
+    private NotificationService notificationService;
+
     // Méthode pour trouver un utilisateur par email
     // @Cacheable("userByEmail")
     public Optional<UserInfo> findUserByEmail(String email) {
@@ -79,19 +93,20 @@ public class UserInfoService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        Optional<UserInfo> userInfo = userInfoRepository.findByName(username);
-        return userInfo.map(UserInfoDetails::new)
+        // essaie name d'abord puis email
+        return userInfoRepository.findByNameOrEmail(username, username)
+                .map(UserInfoDetails::new)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
     }
 
     public void sendWelcomeEmailWithReset(UserInfo userInfo) {
         String subject = "Bienvenue chez MainsDorPlus";
-        String resetUrl = "https://www.mainsdorplus:8081/reset-password";
+        String resetUrl = "https://dev.mainsdorplus/reset-password";
 
         // Encoder le mot de passe
         userInfo.setPassword(passwordEncoder.encode(userInfo.getPassword()));
 
-        String message = "Bonjour " + userInfo.getName() + ",\n\nBienvenue chez MainsDorPlus !\n\n"
+        String message = "Bonjour " + userInfo.getName() + ",\n\nBienvenue chez Hweon !\n\n"
                 + "Voici votre mot de passe temporaire : " + userInfo.getPassword() + "\n\n"
                 + "Pour des raisons de sécurité, veuillez réinitialiser votre mot de passe en cliquant sur le lien suivant : "
                 + resetUrl;
@@ -154,6 +169,11 @@ public class UserInfoService implements UserDetailsService {
         return savedUserInfo;
     }
 
+    public UserInfo findByUsername(String username) {
+        return userInfoRepository.findByNameOrEmail(username, username)
+                .orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé: " + username));
+    }
+
     public AuthResponse login(AuthRequest authRequest) {
         // Rechercher l'utilisateur par son nom ou son email
         final UserInfo user = userInfoRepository.findByNameOrEmail(authRequest.getUserName(), authRequest.getEmail())
@@ -180,11 +200,11 @@ public class UserInfoService implements UserDetailsService {
             if (authorities.isEmpty()) {
                 throw new IllegalArgumentException("No roles found for user: " + user.getName());
             }
-            String fichierPrincipal = user.getFichier() != null ? user.getFichier().getNom() : null;
+            Long fichierPrincipal = user.getFichier() != null ? user.getFichier().getId() : null;
 
             // Liste des fichiers (si nécessaire)
-            List<String> fichiers = user.getFichiers().stream()
-                    .map(fichier -> fichier.getNom()) // Extrait le nom du fichier en String
+            List<Long> fichiers = user.getFichiers().stream()
+                    .map(fichier -> fichier.getId()) // Extrait l'ID du fichier
                     .collect(Collectors.toList());
             user.getFichiers().size();
 
@@ -195,11 +215,13 @@ public class UserInfoService implements UserDetailsService {
                     .toList();
             // Générer le token JWT
             String token = jwtService.generateToken(user.getName(), user.getEmail(), authorities);
-
+            // Générer le refresh token
+            String refreshToken = jwtService.generateRefreshToken(user.getName(), user.getEmail(), authorities);
             // Retourner la réponse d'authentification avec le token et les informations
             // utilisateur
-            return new AuthResponse(user.getId(), token, user.getName(), user.getSecondName(), user.getNumero(),
-                    user.getEmail(), fichierPrincipal, fichiers, authorities, permissions);
+            return new AuthResponse(user.getId(), token, refreshToken, user.getName(), user.getSecondName(),
+                    user.getNumero(),
+                    user.getEmail(), fichierPrincipal, fichiers, authorities, permissions, user.getRoles().isEmpty());
         } else {
             // Lancer une exception si le mot de passe ne correspond pas
             throw new UsernameNotFoundException("Invalid username or password");
@@ -207,10 +229,18 @@ public class UserInfoService implements UserDetailsService {
     }
 
     public List<UserInfo> getUsersByRole(String roleName) {
-        return userInfoRepository.findAll().stream()
-                .filter(user -> user.getRoles().stream()
-                        .anyMatch(role -> role.getNomRole().equals(roleName)))
-                .collect(Collectors.toList());
+        return userInfoRepository.findByRoleName(roleName);
+    }
+
+    public UserInfo saveUser(UserInfo user) {
+        return userInfoRepository.save(user);
+    }
+
+    // 🔹 Ajouter cette méthode
+    public UserInfo getUserFromToken(String token) {
+        String email = jwtService.extractEmail(token); // ou autre claim
+        // Appel au service UserInfoService pour récupérer l'utilisateur depuis la base
+        return findByUsername(email); // Assure-toi que cette méthode existe
     }
 
     public List<UserInfo> getAllAdmins() {
@@ -221,8 +251,24 @@ public class UserInfoService implements UserDetailsService {
         return getUsersByRole("MANAGER_ROLES");
     }
 
+    public List<UserInfo> getAllProprietaires() {
+        return getUsersByRole("PROPRIETAIRE_ROLES");
+    }
+
     public List<UserInfo> getAllUser() {
         return userInfoRepository.findAll();
+    }
+
+    public List<UserInfo> getUsersByRoleAndLocation(String roleName, String adresse) {
+        return userInfoRepository.findByRoleName(roleName).stream()
+                .filter(user -> user.getAdresse() != null
+                        && user.getAdresse().equalsIgnoreCase(adresse))
+                .collect(Collectors.toList());
+    }
+
+    public void notifierUsersParRoleEtZone(String roleName, String adresse, String message) {
+        List<UserInfo> users = getUsersByRoleAndLocation(roleName, adresse);
+        users.forEach(user -> notificationService.envoyerNotificationPrivee(user, message));
     }
 
     // Gestion réelle des tokens de reset password
@@ -255,9 +301,19 @@ public class UserInfoService implements UserDetailsService {
         existingUser.setNumero(userInfoDTO.getNumero());
         existingUser.setAdresse(userInfoDTO.getAdresse());
         existingUser.setDateNaissance(userInfoDTO.getDateNaissance());
-        if (!passwordEncoder.matches(userInfoDTO.getPassword(), existingUser.getPassword())) {
+        if (userInfoDTO.getFichier() != null) {
+            existingUser.setFichier(
+                    fichierRepository.findById(userInfoDTO.getFichier())
+                            .orElseThrow(() -> new UsernameNotFoundException(
+                                    "Fichier non trouvé avec id : " + userInfoDTO.getFichier())));
+        } else {
+            existingUser.setFichier(null);
+        }
+        if (userInfoDTO.getPassword() != null
+                && !passwordEncoder.matches(userInfoDTO.getPassword(), existingUser.getPassword())) {
             existingUser.setPassword(passwordEncoder.encode(userInfoDTO.getPassword()));
         }
+
         return userInfoRepository.save(existingUser);
     }
 
@@ -285,11 +341,51 @@ public class UserInfoService implements UserDetailsService {
         return userInfoRepository.save(userInfo);
     }
 
+    // public void deleteUser(Integer id) {
+    // if (!userInfoRepository.existsById(id)) {
+    // throw new UsernameNotFoundException("User not found with id: " + id);
+    // }
+    // userInfoRepository.deleteById(id);
+
+    // // Journalisation de l'action (audit)
+    // UserInfo currentUser = getCurrentAuthenticatedUser(); // méthode que tu dois
+    // implémenter
+    // accessLogService.logAction(
+    // "/users/delete/" + id,
+    // "DELETE",
+    // "Suppression de l'utilisateur : " + deletedUser.getName(),
+    // currentUser,
+    // 200);
+    // }
+
     public void deleteUser(Integer id) {
-        if (!userInfoRepository.existsById(id)) {
-            throw new UsernameNotFoundException("User not found with id: " + id);
+        // Vérifie si l'utilisateur existe
+        UserInfo deletedUser = userInfoRepository.findById(id)
+                .orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé avec l'ID : " + id));
+
+        // Sauvegarder les infos AVANT suppression pour log
+        String deletedUserName = deletedUser.getName();
+
+        // Suppression
+        try {
+            userInfoRepository.deleteById(id);
+        } catch (Exception ex) {
+            logger.error("Erreur lors de la suppression de l'utilisateur avec l'ID : {}", id, ex);
+            throw new RuntimeException("Impossible de supprimer l'utilisateur. Veuillez réessayer.");
         }
-        userInfoRepository.deleteById(id);
+
+        // Audit / journalisation
+        UserInfo currentUser = getCurrentAuthenticatedUser();
+        if (accessLogService != null && currentUser != null) {
+            accessLogService.logAction(
+                    "/users/delete/" + id,
+                    "DELETE",
+                    "Suppression de l'utilisateur : " + deletedUserName,
+                    currentUser,
+                    200);
+        }
+
+        logger.info("Utilisateur supprimé avec succès : {}", deletedUserName);
     }
 
     // Méthode pour obtenir tous les détails de l'utilisateur y compris les rôles
@@ -309,7 +405,7 @@ public class UserInfoService implements UserDetailsService {
 
     public void sendPasswordResetEmail(UserInfo userInfo, String token) {
         String subject = "Réinitialisation de mot de passe";
-        String resetUrl = "https://www.mainsdorplus.com/reset-password?token=" + token;
+        String resetUrl = "https://dev.mainsdorplus.com/reset-password?token=" + token;
         String message = "Cliquez sur le lien suivant pour réinitialiser votre mot de passe : " + resetUrl;
 
         SimpleMailMessage email = new SimpleMailMessage();
@@ -318,6 +414,33 @@ public class UserInfoService implements UserDetailsService {
         email.setText(message);
 
         mailSender.send(email);
+    }
+
+    public UserInfo getCurrentAuthenticatedUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        // Vérifie si auth est null, non authentifié ou si le principal est
+        // "anonymousUser"
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
+            return null; // utilisateur non authentifié
+        }
+
+        Object principal = auth.getPrincipal();
+
+        if (principal instanceof CustomOAuth2User customUser) {
+            return customUser.getUser();
+        } else if (principal instanceof UserInfoDetails details) {
+            return details.getUserInfo();
+        } else if (principal instanceof UserInfo info) {
+            return info;
+        } else {
+            return null;
+        }
+    }
+
+    public String getCurrentUsername() {
+        UserInfo user = getCurrentAuthenticatedUser();
+        return user != null ? user.getName() : null;
     }
 
     public int getUserScore(Integer userId) {
@@ -377,6 +500,88 @@ public class UserInfoService implements UserDetailsService {
                 userInfo.getName() + " " + userInfo.getSecondName(),
                 proprietaireVerifie,
                 locataireSerieux);
+    }
+
+    @SuppressWarnings("unused")
+    private Collection<Role> resolveRoles(Collection<String> roleNames) {
+        if (roleNames == null || roleNames.isEmpty()) {
+            return List.of(roleRepository.findByNomRole("CLIENTS_ROLES")
+                    .orElseThrow(() -> new RoleNotFoundException("Rôle par défaut non trouvé")));
+        }
+
+        return roleNames.stream()
+                .map(roleName -> roleRepository.findByNomRole(roleName)
+                        .orElseThrow(() -> new RoleNotFoundException("Rôle non trouvé : " + roleName)))
+                .collect(Collectors.toList());
+    }
+
+    public List<UserInfo> getAllLocataires() {
+        return userInfoRepository.findByRoleName("LOCATAIRE_ROLES");
+    }
+
+    public List<UserInfo> getAllGestionnaires() {
+        return userInfoRepository.findByRoleName("MANAGER_ROLES");
+    }
+
+    public List<UserInfo> getAllFournisseurs() {
+        return userInfoRepository.findByRoleName("SUPPLIER_ROLES");
+    }
+
+    /**
+     * Calcule le revenu total gagné par un gestionnaire.
+     * On se base sur les PaiementDistribution (montant net gestionnaire).
+     */
+    public double calculerRevenuGestionnaire(UserInfo gestionnaire) {
+        List<Contrats> contrats = contratsRepository.findByGestionnaire(gestionnaire);
+
+        double total = 0.0;
+
+        for (Contrats c : contrats) {
+            if (c.getPaiementsDistribues() != null) {
+                total += c.getPaiementsDistribues().stream()
+                        .mapToDouble(
+                                pd -> pd.getMontantNetGestionnaire() != null ? pd.getMontantNetGestionnaire() : 0.0)
+                        .sum();
+            }
+        }
+
+        return total;
+    }
+
+    public List<GestionnaireDTO> getGestionnairesAvecStatistiques() {
+        List<UserInfo> gestionnaires = getAllGestionnaires();
+
+        return gestionnaires.stream()
+                .map(g -> {
+
+                    int nbContratsGeres = contratsRepository.countByGestionnaireId(g.getId());
+                    double revenuGenere = calculerRevenuGestionnaire(g);
+                    int score = getUserScore(g.getId());
+
+                    GestionnaireDTO dto = new GestionnaireDTO();
+                    dto.setId(g.getId());
+                    dto.setNom(g.getName());
+                    dto.setPrenom(g.getSecondName());
+                    dto.setEmail(g.getEmail());
+                    dto.setTelephone(g.getNumero());
+                    dto.setAdresse(g.getAdresse());
+
+                    if (g.getFichier() != null) {
+                        dto.setFichierId(g.getFichier().getId());
+                    }
+
+                    // Statistiques
+                    dto.setNbContratsGeres(nbContratsGeres);
+                    dto.setRevenuGenere(revenuGenere);
+                    dto.setScore(score);
+
+                    // Tu peux ajouter logique si besoin
+                    dto.setDisponible(true);
+
+                    return dto;
+                })
+                .sorted((g1, g2) -> Integer.compare(g2.getScore(), g1.getScore()))
+                .collect(Collectors.toList());
     }
 
 }

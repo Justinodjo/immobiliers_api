@@ -1,12 +1,20 @@
 package com.immoservice.immobiliers.controller;
 
-import com.immoservice.immobiliers.entities.SousDetailsBiensImmobiliers;
-import com.immoservice.immobiliers.services.SousDetailsBiensImmobiliersService;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
+import com.immoservice.immobiliers.entities.SousDetailsBiensImmobiliers;
+import com.immoservice.immobiliers.services.SousDetailsBiensImmobiliersService;
 
 @RestController
 @RequestMapping("/api/sous-details-biens")
@@ -15,7 +23,7 @@ public class SousDetailsBiensImmobiliersController {
     @Autowired
     private SousDetailsBiensImmobiliersService service;
 
-    @GetMapping
+    @GetMapping("add")
     public List<SousDetailsBiensImmobiliers> getAll() {
         return service.getAll();
     }

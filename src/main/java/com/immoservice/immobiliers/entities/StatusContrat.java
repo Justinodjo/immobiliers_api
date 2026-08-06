@@ -1,5 +1,5 @@
 package com.immoservice.immobiliers.entities;
 
 public enum StatusContrat {
-    ACTIF, RESILIE, EXPIRE
+    ACTIF, RESILIE, EXPIRE, TERMINE
 }

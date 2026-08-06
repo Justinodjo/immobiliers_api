@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class WhatsAppService {
-    private final String FROM_WHATSAPP = "whatsapp:+14155238886"; // Twilio Sandbox
+    private final String FROM_WHATSAPP = "whatsapp:+2290161366896"; // Twilio Sandbox
     @Autowired
     private final TwilioProperties twilioProperties;
 

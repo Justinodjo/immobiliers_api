@@ -63,4 +63,11 @@ public class QuartierController {
         quartierService.deleteQuartier(idQuartier);
         return ResponseEntity.noContent().build();
     }
+
+@GetMapping("/arrondissement/{idArrondissement}")
+public List<Quartier> getQuartiersByArrondissement(@PathVariable Long idArrondissement) {
+    return quartierService.getQuartiersByArrondissementId(idArrondissement);
+}
+
+
 }

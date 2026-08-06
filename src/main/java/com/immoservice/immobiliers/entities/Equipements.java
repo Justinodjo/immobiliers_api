@@ -2,6 +2,11 @@ package com.immoservice.immobiliers.entities;
 
 import java.util.Set;
 
+import com.immoservice.immobiliers.enums.TypeCuisine;
+import com.immoservice.immobiliers.enums.TypeGarage;
+import com.immoservice.immobiliers.enums.TypeRevetementMural;
+import com.immoservice.immobiliers.enums.TypeVue;
+
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
@@ -15,7 +20,7 @@ import jakarta.persistence.JoinColumn;
 
 @Entity
 public class Equipements {
-     @Id
+    @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
@@ -49,6 +54,30 @@ public class Equipements {
     @Column(name = "langue")
     private Set<LanguePersonnel> languesPersonnel;
 
+    @ElementCollection(targetClass = TypeCuisine.class)
+    @Enumerated(EnumType.STRING)
+    @CollectionTable(name = "equipements_cuisines", joinColumns = @JoinColumn(name = "equipements_id"))
+    @Column(name = "cuisine")
+    private Set<TypeCuisine> typeCuisine;
+
+    @ElementCollection(targetClass = TypeGarage.class)
+    @Enumerated(EnumType.STRING)
+    @CollectionTable(name = "equipements_garages", joinColumns = @JoinColumn(name = "equipements_id"))
+    @Column(name = "garage")
+    private Set<TypeGarage> typeGarage;
+
+    @ElementCollection(targetClass = TypeRevetementMural.class)
+    @Enumerated(EnumType.STRING)
+    @CollectionTable(name = "equipements_revetements", joinColumns = @JoinColumn(name = "equipements_id"))
+    @Column(name = "revetement")
+    private Set<TypeRevetementMural> typeRevetement;
+
+    @ElementCollection(targetClass = TypeVue.class)
+    @Enumerated(EnumType.STRING)
+    @CollectionTable(name = "equipements_vues", joinColumns = @JoinColumn(name = "equipements_id"))
+    @Column(name = "vue")
+    private Set<TypeVue> typeVue;
+
     public Long getId() {
         return id;
     }
@@ -71,6 +100,22 @@ public class Equipements {
 
     public void setModesPaiement(Set<ModePaiement> modesPaiement) {
         this.modesPaiement = modesPaiement;
+    }
+
+    public Set<TypeGarage> getTypeGarage() {
+        return typeGarage;
+    }
+
+    public void setTypeGarage(Set<TypeGarage> typeGarage) {
+        this.typeGarage = typeGarage;
+    }
+
+    public Set<TypeRevetementMural> getTypeRevetement() {
+        return typeRevetement;
+    }
+
+    public void setTypeRevetement(Set<TypeRevetementMural> typeRevetement) {
+        this.typeRevetement = typeRevetement;
     }
 
     public Set<Service> getServices() {
@@ -97,5 +142,20 @@ public class Equipements {
         this.languesPersonnel = languesPersonnel;
     }
 
-    
+    public Set<TypeCuisine> getTypeCuisine() {
+        return typeCuisine;
+    }
+
+    public void setTypeCuisine(Set<TypeCuisine> typeCuisine) {
+        this.typeCuisine = typeCuisine;
+    }
+
+    public Set<TypeVue> getTypeVue() {
+        return typeVue;
+    }
+
+    public void setTypeVue(Set<TypeVue> typeVue) {
+        this.typeVue = typeVue;
+    }
+
 }

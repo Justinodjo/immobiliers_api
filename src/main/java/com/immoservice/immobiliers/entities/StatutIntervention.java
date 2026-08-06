@@ -4,5 +4,6 @@ public enum StatutIntervention {
     PLANIFIE,
     ENCOURS,
     TERMINEE,
-    ANNULEE
+    ANNULEE,
+    EN_ATTENTE
 }

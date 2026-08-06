@@ -5,8 +5,6 @@ import java.util.Date;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
-import static jakarta.persistence.CascadeType.MERGE;
-import static jakarta.persistence.CascadeType.PERSIST;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -20,7 +18,7 @@ public class Arrondissement {
 
     private String libelle;
     private Date version;
-    @ManyToOne(cascade = { PERSIST, MERGE })
+    @ManyToOne
     @JoinColumn(name = "idCommune")
     private Commune commune;
 

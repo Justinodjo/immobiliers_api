@@ -19,7 +19,7 @@ public class Quartier {
     private Date datecreation;
     private String libelle;
     private Date version;
-    @ManyToOne(cascade = { PERSIST, MERGE })
+    @ManyToOne
     @JoinColumn(name = "idArrondissement")
     private Arrondissement arrondissement;
 

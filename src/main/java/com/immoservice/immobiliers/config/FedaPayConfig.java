@@ -1,14 +1,22 @@
-// package com.web.application.config;
+package com.immoservice.immobiliers.config;
 
-// import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 
-// import com.fedapay.model.FedaPay;
+import com.fedapay.model.FedaPay;
 
-// @Configuration
-// public class FedaPayConfig {
+import jakarta.annotation.PostConstruct;
 
-//     public FedaPayConfig() {
-//         // Configurez votre clé API secrète
-//         FedaPay.apiKey = "sk_live_uKcXC79oLvQReXGou2S691ps";
-//     }
-// }
+@Configuration
+public class FedaPayConfig {
+
+    @Autowired
+    private Environment environment; // <-- injection de l'environnement Spring
+
+    @PostConstruct
+    public void init() {
+        String apiKey = environment.getProperty("fedapay.api.key");
+        FedaPay.apiKey = apiKey;
+    }
+}

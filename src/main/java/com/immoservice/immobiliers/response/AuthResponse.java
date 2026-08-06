@@ -8,29 +8,42 @@ import org.springframework.security.core.GrantedAuthority;
 public class AuthResponse {
     private Integer id;
     private String token;
+    private String refreshToken;
     private String userName;
     private String secondName;
     private String numero;
     private String email;
-    private String fichier;
-    private List<String> fichiers;
+    private Long fichier;
+    private List<Long> fichiers;
     private Collection<? extends GrantedAuthority> roles;
     private List<String> permissions;
+    private boolean needsRoleSelection;
 
     // Constructeurs, getters et setters
-    public AuthResponse(Integer id, String token, String userName, String secondName, String numero, String email,
-            String fichier,
-            List<String> fichiers, Collection<? extends GrantedAuthority> roles, List<String> permissions) {
+    public AuthResponse(Integer id, String token, String refreshToken, String userName, String secondName,
+            String numero, String email,
+            Long fichier, List<Long> fichiers, Collection<? extends GrantedAuthority> roles,
+            List<String> permissions, boolean needsRoleSelection) {
         this.id = id;
         this.token = token;
+        this.refreshToken = refreshToken;
         this.userName = userName;
         this.secondName = secondName;
         this.numero = numero;
         this.email = email;
-        this.roles = roles;
         this.fichier = fichier;
         this.fichiers = fichiers;
+        this.roles = roles;
         this.permissions = permissions;
+        this.needsRoleSelection = needsRoleSelection;
+    }
+
+    public AuthResponse(String email, boolean needsRoleSelection) {
+        this.email = email;
+        this.needsRoleSelection = needsRoleSelection;
+    }
+
+    public AuthResponse() {
     }
 
     public String getToken() {
@@ -41,11 +54,11 @@ public class AuthResponse {
         this.token = token;
     }
 
-    public String getFichier() {
+    public Long getFichier() {
         return fichier;
     }
 
-    public void setFichier(String fichier) {
+    public void setFichier(Long fichier) {
         this.fichier = fichier;
     }
 
@@ -97,11 +110,11 @@ public class AuthResponse {
         this.id = id;
     }
 
-    public List<String> getFichiers() {
+    public List<Long> getFichiers() {
         return fichiers;
     }
 
-    public void setFichiers(List<String> fichiers) {
+    public void setFichiers(List<Long> fichiers) {
         this.fichiers = fichiers;
     }
 
@@ -111,5 +124,21 @@ public class AuthResponse {
 
     public void setPermissions(List<String> permissions) {
         this.permissions = permissions;
+    }
+
+    public boolean isNeedsRoleSelection() {
+        return needsRoleSelection;
+    }
+
+    public void setNeedsRoleSelection(boolean needsRoleSelection) {
+        this.needsRoleSelection = needsRoleSelection;
+    }
+
+    public String getRefreshToken() {
+        return refreshToken;
+    }
+
+    public void setRefreshToken(String refreshToken) {
+        this.refreshToken = refreshToken;
     }
 }

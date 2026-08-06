@@ -106,4 +106,6 @@ public class AccessLog {
     public void setUtilisateur(UserInfo utilisateur) {
         this.utilisateur = utilisateur;
     }
+
+    
 }

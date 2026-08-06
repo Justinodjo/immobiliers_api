@@ -4,17 +4,20 @@ import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
-import com.immoservice.immobiliers.entities.Commune;
 
+import com.immoservice.immobiliers.entities.Commune;
+import com.immoservice.immobiliers.entities.Departement;
 @Repository
 public interface CommuneRepository extends JpaRepository<Commune, Long> {
 
     // Rechercher les communes par l'ID du département
-    // List<Commune> findByDepartement_IdDepartement(Long idDepartement);
+    List<Commune> findByDepartement(Departement departement);
 
     // Rechercher les communes par libellé (nom) de département
     List<Commune> findByDepartement_Libelle(String libelle);
 
     List<Commune> findByLibelleContainingIgnoreCase(String libelle);
+
+    List<Commune> findByDepartementIdDepartement(Long idDepartement);
 
 }

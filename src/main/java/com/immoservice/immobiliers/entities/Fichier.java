@@ -114,4 +114,16 @@ public class Fichier {
         return principal;
     }
 
+    @Override
+    public String toString() {
+        return "Fichier{" +
+                "id=" + id +
+                ", nom='" + nom + '\'' +
+                ", originalName='" + originalName + '\'' +
+                ", taille=" + taille +
+                ", url='" + url + '\'' +
+                ", principal=" + principal +
+                '}';
+    }
+
 }

@@ -43,9 +43,15 @@ public class UserInfo {
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String password;
     private String adresse;
+    private String registreCommerce;
+    private Integer identifiantNumerique;
+    private Integer identifiantFiscal;
     private String email;
     @Column(name = "numero", length = 20)
     private String numero;
+    private String provider; // GOOGLE, FACEBOOK, GITHUB...
+    private String providerId;
+
     @ManyToOne(cascade = { CascadeType.PERSIST, CascadeType.MERGE })
     @JoinColumn(name = "fichier_id") // Clé étrangère dans la table produits
     private Fichier fichier;
@@ -99,6 +105,22 @@ public class UserInfo {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getProviderId() {
+        return providerId;
+    }
+
+    public void setProviderId(String providerId) {
+        this.providerId = providerId;
+    }
+
+    public String getProvider() {
+        return provider;
+    }
+
+    public void setProvider(String provider) {
+        this.provider = provider;
     }
 
     public String getSecondName() {
@@ -187,6 +209,34 @@ public class UserInfo {
 
     public void setPermissions(Set<Permission> permissions) {
         this.permissions = permissions;
+    }
+
+    public String getNomComplet() {
+        return (name != null ? name : "") + " " + (secondName != null ? secondName : "");
+    }
+
+    public String getRegistreCommerce() {
+        return registreCommerce;
+    }
+
+    public void setRegistreCommerce(String registreCommerce) {
+        this.registreCommerce = registreCommerce;
+    }
+
+    public Integer getIdentifiantNumerique() {
+        return identifiantNumerique;
+    }
+
+    public void setIdentifiantNumerique(Integer identifiantNumerique) {
+        this.identifiantNumerique = identifiantNumerique;
+    }
+
+    public Integer getIdentifiantFiscal() {
+        return identifiantFiscal;
+    }
+
+    public void setIdentifiantFiscal(Integer identifiantFiscal) {
+        this.identifiantFiscal = identifiantFiscal;
     }
 
     @Override
